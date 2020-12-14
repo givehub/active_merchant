@@ -446,7 +446,7 @@ class RemoteStripeIntentsTest < Test::Unit::TestCase
       error_on_requires_action: true
     }
     assert create_response = @gateway.create_intent(@amount, @three_ds_credit_card, options)
-    assert create_response.message.include?('This payment required an authentication action to complete, but `error_on_requires_action` was set.') 
+    assert create_response.message.include?('This payment required an authentication action to complete, but `error_on_requires_action` was set.')
   end
 
   def test_successful_create_a_payment_intent_with_set_error_on_requires_action
