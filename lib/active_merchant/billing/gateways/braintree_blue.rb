@@ -488,7 +488,7 @@ module ActiveMerchant #:nodoc:
           }
           vault_customer["credit_cards"] = transaction.vault_customer.credit_cards.map do |cc|
             {
-              "bin" => cc.bin
+                "bin" => cc.bin
             }
           end
         else
@@ -496,71 +496,96 @@ module ActiveMerchant #:nodoc:
         end
 
         customer_details = {
-          "id" => transaction.customer_details.id,
-          "email" => transaction.customer_details.email,
-          "phone" => transaction.customer_details.phone,
+            "id" => transaction.customer_details.id,
+            "email" => transaction.customer_details.email
         }
 
         billing_details = {
-          "street_address"   => transaction.billing_details.street_address,
-          "extended_address" => transaction.billing_details.extended_address,
-          "company"          => transaction.billing_details.company,
-          "locality"         => transaction.billing_details.locality,
-          "region"           => transaction.billing_details.region,
-          "postal_code"      => transaction.billing_details.postal_code,
-          "country_name"     => transaction.billing_details.country_name,
+            "street_address"   => transaction.billing_details.street_address,
+            "extended_address" => transaction.billing_details.extended_address,
+            "company"          => transaction.billing_details.company,
+            "locality"         => transaction.billing_details.locality,
+            "region"           => transaction.billing_details.region,
+            "postal_code"      => transaction.billing_details.postal_code,
+            "country_name"     => transaction.billing_details.country_name,
         }
 
         shipping_details = {
-          "street_address"   => transaction.shipping_details.street_address,
-          "extended_address" => transaction.shipping_details.extended_address,
-          "company"          => transaction.shipping_details.company,
-          "locality"         => transaction.shipping_details.locality,
-          "region"           => transaction.shipping_details.region,
-          "postal_code"      => transaction.shipping_details.postal_code,
-          "country_name"     => transaction.shipping_details.country_name,
+            "street_address"   => transaction.shipping_details.street_address,
+            "extended_address" => transaction.shipping_details.extended_address,
+            "company"          => transaction.shipping_details.company,
+            "locality"         => transaction.shipping_details.locality,
+            "region"           => transaction.shipping_details.region,
+            "postal_code"      => transaction.shipping_details.postal_code,
+            "country_name"     => transaction.shipping_details.country_name,
         }
         credit_card_details = {
-          "masked_number"       => transaction.credit_card_details.masked_number,
-          "bin"                 => transaction.credit_card_details.bin,
-          "last_4"              => transaction.credit_card_details.last_4,
-          "card_type"           => transaction.credit_card_details.card_type,
-          "token"               => transaction.credit_card_details.token
+            "cardholder_name"     => transaction.credit_card_details.cardholder_name,
+            "masked_number"       => transaction.credit_card_details.masked_number,
+            "bin"                 => transaction.credit_card_details.bin,
+            "last_4"              => transaction.credit_card_details.last_4,
+            "card_type"           => transaction.credit_card_details.card_type,
+            "token"               => transaction.credit_card_details.token,
+            "paypal_email"        => transaction.paypal_details.payer_email
+        }
+        apple_pay_details = {
+            "card_type"               => transaction.apple_pay_details.card_type,
+            "cardholder_name"         => transaction.apple_pay_details.cardholder_name,
+            "expiration_month"        => transaction.apple_pay_details.expiration_month,
+            "expiration_year"         => transaction.apple_pay_details.expiration_year,
+            "last_4"                  => transaction.apple_pay_details.last_4,
+
+        }
+        masterpass_card_details = {
+            "card_type"               => transaction.masterpass_card_details.card_type,
+            "cardholder_name"         => transaction.masterpass_card_details.cardholder_name,
+            "expiration_month"        => transaction.masterpass_card_details.expiration_month,
+            "expiration_year"         => transaction.masterpass_card_details.expiration_year,
+            "last_4"                  => transaction.masterpass_card_details.last_4
+        }
+        paypal_details = {
+            "authorization_id"        => transaction.paypal_details.authorization_id,
+            "payer_email"             => transaction.paypal_details.payer_email,
+            "payer_first_name"        => transaction.paypal_details.payer_first_name,
+            "payer_last_name"         => transaction.paypal_details.payer_last_name,
+            "payer_id"                => transaction.paypal_details.payer_id,
+            "payment_id"              => transaction.paypal_details.payment_id,
         }
 
         {
-          "order_id"                => transaction.order_id,
-          "status"                  => transaction.status,
-          "credit_card_details"     => credit_card_details,
-          "customer_details"        => customer_details,
-          "billing_details"         => billing_details,
-          "shipping_details"        => shipping_details,
-          "vault_customer"          => vault_customer,
-          "merchant_account_id"     => transaction.merchant_account_id,
-          "processor_response_code" => response_code_from_result(result)
+            "order_id"                => transaction.order_id,
+            "status"                  => transaction.status,
+            "credit_card_details"     => credit_card_details,
+            "apple_pay_card_details"  => apple_pay_details,
+            "masterpass_card_details" => masterpass_card_details,
+            "paypal_details"          => paypal_details,
+            "customer_details"        => customer_details,
+            "billing_details"         => billing_details,
+            "shipping_details"        => shipping_details,
+            "vault_customer"          => vault_customer,
+            "merchant_account_id"     => transaction.merchant_account_id,
+            "processor_response_code" => response_code_from_result(result),
+            "payment_instrument_type" => transaction.payment_instrument_type
         }
       end
 
       def create_transaction_parameters(money, credit_card_or_vault_id, options)
         parameters = {
-          :amount => amount(money).to_s,
-          :order_id => options[:order_id],
-          :customer => {
-            :id => options[:store] == true ? "" : options[:store],
-            :email => scrub_email(options[:email]),
-            :phone => options[:phone] || (options[:billing_address][:phone] if options[:billing_address] &&
-	            options[:billing_address][:phone])
-          },
-          :options => {
-            :store_in_vault => options[:store] ? true : false,
-            :submit_for_settlement => options[:submit_for_settlement],
-            :hold_in_escrow => options[:hold_in_escrow]
-          }
+            :amount => amount(money).to_s,
+            :order_id => options[:order_id],
+            :customer_id => options[:customer_id],
+            :customer => {
+                :id => options[:store] == true ? "" : options[:store],
+                :email => scrub_email(options[:email])
+            },
+            :options => {
+                :store_in_vault => options[:store] ? true : false,
+                :submit_for_settlement => options[:submit_for_settlement]
+            }
         }
 
         parameters[:custom_fields] = options[:custom_fields]
         parameters[:device_data] = options[:device_data] if options[:device_data]
-        parameters[:service_fee_amount] = options[:service_fee_amount] if options[:service_fee_amount]
         if merchant_account_id = (options[:merchant_account_id] || @merchant_account_id)
           parameters[:merchant_account_id] = merchant_account_id
         end
@@ -572,60 +597,34 @@ module ActiveMerchant #:nodoc:
         if credit_card_or_vault_id.is_a?(String) || credit_card_or_vault_id.is_a?(Integer)
           if options[:payment_method_token]
             parameters[:payment_method_token] = credit_card_or_vault_id
-            options.delete(:billing_address)
+
           elsif options[:payment_method_nonce]
             parameters[:payment_method_nonce] = credit_card_or_vault_id
+
           else
             parameters[:customer_id] = credit_card_or_vault_id
           end
         else
           parameters[:customer].merge!(
-            :first_name => credit_card_or_vault_id.first_name,
-            :last_name => credit_card_or_vault_id.last_name
+              :first_name => credit_card_or_vault_id.first_name,
+              :last_name => credit_card_or_vault_id.last_name
           )
-          if credit_card_or_vault_id.is_a?(NetworkTokenizationCreditCard)
-            if credit_card_or_vault_id.source == :apple_pay
-              parameters[:apple_pay_card] = {
-                :number => credit_card_or_vault_id.number,
-                :expiration_month => credit_card_or_vault_id.month.to_s.rjust(2, "0"),
-                :expiration_year => credit_card_or_vault_id.year.to_s,
-                :cardholder_name => credit_card_or_vault_id.name,
-                :cryptogram => credit_card_or_vault_id.payment_cryptogram,
-                :eci_indicator => credit_card_or_vault_id.eci
-              }
-          elsif credit_card_or_vault_id.source == :android_pay
-              parameters[:android_pay_card] = {
-                :number => credit_card_or_vault_id.number,
-                :cryptogram => credit_card_or_vault_id.payment_cryptogram,
-                :expiration_month => credit_card_or_vault_id.month.to_s.rjust(2, "0"),
-                :expiration_year => credit_card_or_vault_id.year.to_s,
-                :google_transaction_id => credit_card_or_vault_id.transaction_id,
-                :source_card_type => credit_card_or_vault_id.brand,
-                :source_card_last_four => credit_card_or_vault_id.last_digits,
-                :eci_indicator => credit_card_or_vault_id.eci
-              }
-            end
-          else
-            parameters[:credit_card] = {
+          parameters[:credit_card] = {
               :number => credit_card_or_vault_id.number,
               :cvv => credit_card_or_vault_id.verification_value,
               :expiration_month => credit_card_or_vault_id.month.to_s.rjust(2, "0"),
-              :expiration_year => credit_card_or_vault_id.year.to_s,
-              :cardholder_name => credit_card_or_vault_id.name
-            }
-          end
+              :expiration_year => credit_card_or_vault_id.year.to_s
+          }
         end
-        parameters[:billing] = map_address(options[:billing_address]) if options[:billing_address]
+        parameters[:billing] = map_address(options[:billing_address]) if options[:billing_address] && !options[:payment_method_token] && !options[:payment_method_nonce]
         parameters[:shipping] = map_address(options[:shipping_address]) if options[:shipping_address]
-
-        channel = @options[:channel] || application_id
-        parameters[:channel] = channel if channel
+        parameters[:channel] = application_id if application_id.present? && application_id != "ActiveMerchant"
 
         if options[:descriptor_name] || options[:descriptor_phone] || options[:descriptor_url]
           parameters[:descriptor] = {
-            name: options[:descriptor_name],
-            phone: options[:descriptor_phone],
-            url: options[:descriptor_url]
+              name: options[:descriptor_name],
+              phone: options[:descriptor_phone],
+              url: options[:descriptor_url]
           }
         end
 

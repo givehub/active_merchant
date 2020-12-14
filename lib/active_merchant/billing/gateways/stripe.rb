@@ -299,30 +299,24 @@ module ActiveMerchant #:nodoc:
 
       def create_post_for_auth_or_purchase(money, payment, options)
         post = {}
-
+        add_amount(post, money, options, true)
         if payment.is_a?(StripePaymentToken)
           add_payment_token(post, payment, options)
         else
           add_creditcard(post, payment, options)
         end
+        add_customer(post, payment, options)
+        add_customer_data(post, options)
+        post[:description] = options[:description]
+        post[:statement_descriptor] = options[:statement_descriptor]
 
-        if emv_payment?(payment)
-          add_statement_address(post, options)
-          add_emv_metadata(post, payment)
-        else
-          add_amount(post, money, options, true)
-          add_customer_data(post, options)
-          post[:description] = options[:description]
-          post[:statement_descriptor] = options[:statement_description]
-          post[:receipt_email] = options[:receipt_email] if options[:receipt_email]
-          add_customer(post, payment, options)
-          add_flags(post, options)
-        end
+        post[:metadata] = options[:metadata] || {}
+        post[:metadata][:email] = options[:email] if options[:email]
+        post[:metadata][:order_id] = options[:order_id] if options[:order_id]
+        post.delete(:metadata) if post[:metadata].empty?
 
-        add_metadata(post, options)
+        add_flags(post, options)
         add_application_fee(post, options)
-        add_exchange_rate(post, options)
-        add_destination(post, options)
         post
       end
 
@@ -507,18 +501,18 @@ module ActiveMerchant #:nodoc:
       end
 
       def headers(options = {})
-        key     = options[:key] || @api_key
+        key = options[:key] || @api_key
         idempotency_key = options[:idempotency_key]
 
         headers = {
-          "Authorization" => "Basic " + Base64.encode64(key.to_s + ":").strip,
-          "User-Agent" => "Stripe/v1 ActiveMerchantBindings/#{ActiveMerchant::VERSION}",
-          "Stripe-Version" => api_version(options),
-          "X-Stripe-Client-User-Agent" => stripe_client_user_agent(options),
-          "X-Stripe-Client-User-Metadata" => {:ip => options[:ip]}.to_json
+            'Authorization' => 'Basic ' + Base64.strict_encode64(key.to_s + ':').strip,
+            'User-Agent' => "Stripe/v1 ActiveMerchantBindings/#{ActiveMerchant::VERSION}",
+            'Stripe-Version' => api_version(options),
+            'X-Stripe-Client-User-Agent' => stripe_client_user_agent(options),
+            'X-Stripe-Client-User-Metadata' => {ip: options[:ip]}.to_json
         }
-        headers.merge!("Idempotency-Key" => idempotency_key) if idempotency_key
-        headers.merge!("Stripe-Account" => options[:stripe_account]) if options[:stripe_account]
+        headers['Idempotency-Key'] = idempotency_key if idempotency_key
+        headers['Stripe-Account'] = options[:stripe_account] if options[:stripe_account]
         headers
       end
 

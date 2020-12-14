@@ -236,6 +236,12 @@ module ActiveMerchant #:nodoc:
         response.params["reasonCode"] == "102"
       end
 
+      def add_device_fingerprint_id(xml, options={})
+        if options[:device_fingerprint_id]
+          xml.tag! 'deviceFingerprintID', options[:device_fingerprint_id]
+        end
+      end
+
       private
 
       # Create all address hash key value pairs so that we still function if we
@@ -261,6 +267,7 @@ module ActiveMerchant #:nodoc:
         xml.tag! 'payerAuthEnrollService', {'run' => 'true'} if options[:payer_auth_enroll_service]
         add_payment_network_token(xml) if network_tokenization?(creditcard_or_reference)
         add_business_rules_data(xml, creditcard_or_reference, options)
+        add_device_fingerprint_id(xml, options)
         xml.target!
       end
 
@@ -299,6 +306,7 @@ module ActiveMerchant #:nodoc:
           add_payment_network_token(xml) if network_tokenization?(payment_method_or_reference)
           add_business_rules_data(xml, payment_method_or_reference, options) unless options[:pinless_debit_card]
         end
+        add_device_fingerprint_id(xml, options)
         xml.target!
       end
 
