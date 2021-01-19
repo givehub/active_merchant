@@ -455,8 +455,14 @@ module ActiveMerchant #:nodoc:
 
       def add_address(xml, payment_method, address, options, shipTo = false)
         xml.tag! shipTo ? 'shipTo' : 'billTo' do
-          xml.tag! 'firstName',             payment_method.first_name             if payment_method
-          xml.tag! 'lastName',              payment_method.last_name              if payment_method
+          if shipTo
+            xml.tag! 'firstName',           address[:firstName]                   if address[:firstName]
+            xml.tag! 'lastName',            address[:lastName]                    if address[:lastName]
+          else
+            xml.tag! 'firstName',           payment_method.first_name             if payment_method
+            xml.tag! 'lastName',            payment_method.last_name              if payment_method
+          end
+
           xml.tag! 'street1',               address[:address1]
           xml.tag! 'street2',               address[:address2]                unless address[:address2].blank?
           xml.tag! 'city',                  address[:city]
@@ -470,6 +476,7 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'ipAddress',             options[:ip]                      unless options[:ip].blank? || shipTo
           xml.tag! 'driversLicenseNumber',  options[:drivers_license_number]  unless options[:drivers_license_number].blank?
           xml.tag! 'driversLicenseState',   options[:drivers_license_state]   unless options[:drivers_license_state].blank?
+          xml.tag! 'customerID',            address[:customerID]   unless address[:customerID].blank?
         end
       end
 
@@ -666,6 +673,7 @@ module ActiveMerchant #:nodoc:
         else
           add_address(xml, payment_method_or_reference, options[:billing_address], options)
           add_address(xml, payment_method_or_reference, options[:shipping_address], options, true)
+          add_line_item_data(xml, options) if options[:line_items]
           add_purchase_data(xml, money, true, options)
           add_creditcard(xml, payment_method_or_reference)
         end
