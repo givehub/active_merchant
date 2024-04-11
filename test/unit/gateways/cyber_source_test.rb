@@ -28,7 +28,13 @@ class CyberSourceTest < Test::Unit::TestCase
                                                                  brand: 'master',
                                                                  transaction_id: '123',
                                                                  eci: '05',
+                                                                 source: :network_token,
                                                                  payment_cryptogram: '111111111100cryptogram')
+    @amex_network_token = network_tokenization_credit_card('378282246310005',
+                                                           brand: 'american_express',
+                                                           eci: '05',
+                                                           payment_cryptogram: '111111111100cryptogram',
+                                                           source: :network_token)
     @apple_pay = network_tokenization_credit_card('4111111111111111',
                                                   brand: 'visa',
                                                   transaction_id: '123',
@@ -553,9 +559,10 @@ class CyberSourceTest < Test::Unit::TestCase
 
   def test_successful_network_token_purchase_subsequent_auth_visa
     @gateway.expects(:ssl_post).with do |_host, request_body|
-      assert_match %r'<cavv>111111111100cryptogram</cavv>', request_body
-      assert_match %r'<commerceIndicator>vbv</commerceIndicator>', request_body
-      assert_not_match %r'<commerceIndicator>internet</commerceIndicator>', request_body
+      assert_match %r'<networkTokenCryptogram>111111111100cryptogram</networkTokenCryptogram>', request_body
+      assert_match %r'<commerceIndicator>internet</commerceIndicator>', request_body
+      assert_match %r'<paymentSolution>015</paymentSolution>', request_body
+      assert_match %r'<transactionType>3</transactionType>', request_body
       true
     end.returns(successful_purchase_response)
 
@@ -999,7 +1006,9 @@ class CyberSourceTest < Test::Unit::TestCase
       @gateway.authorize(@amount, @network_token, @options)
     end.check_request do |_endpoint, body, _headers|
       assert_xml_valid_to_xsd(body)
-      assert_match %r'<ccAuthService run=\"true\">\n  <cavv>111111111100cryptogram</cavv>\n  <commerceIndicator>vbv</commerceIndicator>\n  <xid>111111111100cryptogram</xid>\n</ccAuthService>\n<businessRules>\n</businessRules>\n<paymentNetworkToken>\n  <transactionType>1</transactionType>\n</paymentNetworkToken>', body
+      assert_match %r(<networkTokenCryptogram>111111111100cryptogram</networkTokenCryptogram>), body
+      assert_match %r(<commerceIndicator>internet</commerceIndicator>), body
+      assert_match %r(<transactionType>3</transactionType>), body
     end.respond_with(successful_purchase_response)
 
     assert_success response
@@ -1017,9 +1026,12 @@ class CyberSourceTest < Test::Unit::TestCase
   end
 
   def test_successful_auth_with_network_tokenization_for_mastercard
-    @gateway.expects(:ssl_post).with do |_host, request_body|
-      assert_xml_valid_to_xsd(request_body)
-      assert_match %r'<ucaf>\n  <authenticationData>111111111100cryptogram</authenticationData>\n  <collectionIndicator>2</collectionIndicator>\n</ucaf>\n<ccAuthService run=\"true\">\n  <commerceIndicator>spa</commerceIndicator>\n</ccAuthService>\n<businessRules>\n</businessRules>\n<paymentNetworkToken>\n  <transactionType>1</transactionType>\n</paymentNetworkToken>', request_body
+    @gateway.expects(:ssl_post).with do |_host, body|
+      assert_xml_valid_to_xsd(body)
+      assert_match %r(<networkTokenCryptogram>111111111100cryptogram</networkTokenCryptogram>), body
+      assert_match %r(<commerceIndicator>internet</commerceIndicator>), body
+      assert_match %r(<transactionType>3</transactionType>), body
+      assert_match %r(<paymentSolution>014</paymentSolution>), body
       true
     end.returns(successful_purchase_response)
 
@@ -1028,7 +1040,8 @@ class CyberSourceTest < Test::Unit::TestCase
       brand: 'master',
       transaction_id: '123',
       eci: '05',
-      payment_cryptogram: '111111111100cryptogram'
+      payment_cryptogram: '111111111100cryptogram',
+      source: :network_token
     )
 
     assert response = @gateway.authorize(@amount, credit_card, @options)
@@ -1038,11 +1051,28 @@ class CyberSourceTest < Test::Unit::TestCase
   def test_successful_purchase_network_tokenization_mastercard
     @gateway.expects(:ssl_post).with do |_host, request_body|
       assert_xml_valid_to_xsd(request_body)
-      assert_match %r'<ucaf>\n  <authenticationData>111111111100cryptogram</authenticationData>\n  <collectionIndicator>2</collectionIndicator>\n</ucaf>\n<ccAuthService run=\"true\">\n  <commerceIndicator>spa</commerceIndicator>\n</ccAuthService>\n<ccCaptureService run=\"true\">\n</ccCaptureService>\n<businessRules>\n</businessRules>\n<paymentNetworkToken>\n  <transactionType>1</transactionType>\n</paymentNetworkToken>', request_body
+      assert_match %r'<networkTokenCryptogram>111111111100cryptogram</networkTokenCryptogram>', request_body
+      assert_match %r'<commerceIndicator>internet</commerceIndicator>', request_body
+      assert_match %r'<paymentSolution>014</paymentSolution>', request_body
+      assert_not_match %r'<authenticationData>111111111100cryptogram</authenticationData>', request_body
       true
     end.returns(successful_purchase_response)
 
     assert response = @gateway.purchase(@amount, @network_token_mastercard, @options)
+    assert_success response
+  end
+
+  def test_successful_purchase_network_tokenization_amex
+    @gateway.expects(:ssl_post).with do |_host, request_body|
+      assert_xml_valid_to_xsd(request_body)
+      assert_match %r'<networkTokenCryptogram>111111111100cryptogram</networkTokenCryptogram>', request_body
+      assert_match %r'<commerceIndicator>internet</commerceIndicator>', request_body
+      assert_not_match %r'<paymentSolution>014</paymentSolution>', request_body
+      assert_not_match %r'<paymentSolution>015</paymentSolution>', request_body
+      true
+    end.returns(successful_purchase_response)
+
+    assert response = @gateway.purchase(@amount, @amex_network_token, @options)
     assert_success response
   end
 
