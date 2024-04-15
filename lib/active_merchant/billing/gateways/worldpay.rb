@@ -573,6 +573,8 @@ module ActiveMerchant #:nodoc:
           add_amount_for_pay_as_order(xml, amount, payment_method, options)
         when :network_token
           add_network_tokenization_card(xml, payment_method, options)
+        when :encrypted_wallet
+          add_encrypted_wallet(xml, payment_method, options)
         else
           add_card_or_token(xml, payment_method, options)
         end
@@ -608,6 +610,23 @@ module ActiveMerchant #:nodoc:
             xml.cardHolderName name if name.present?
             xml.cryptogram payment_method.payment_cryptogram unless options[:wallet_type] == :google_pay
             xml.eciIndicator eci.empty? ? '07' : eci
+          end
+        end
+      end
+
+      def add_encrypted_wallet(xml, payment_method, options)
+        source = payment_method.source == :apple_pay ? 'APPLEPAY' : 'PAYWITHGOOGLE'
+
+        xml.paymentDetails do
+          xml.tag! "#{source}-SSL" do
+            xml.header do
+              xml.ephemeralPublicKey payment_method.payment_data.dig(:header, :ephemeralPublicKey)
+              xml.publicKeyHash payment_method.payment_data.dig(:header, :publicKeyHash)
+              xml.transactionId payment_method.payment_data.dig(:header, :transactionId)
+            end
+            xml.signature payment_method.payment_data[:signature]
+            xml.version payment_method.payment_data[:version]
+            xml.data payment_method.payment_data[:data]
           end
         end
       end
@@ -981,7 +1000,15 @@ module ActiveMerchant #:nodoc:
         when String
           token_type_and_details(payment_method)
         else
-          type = network_token?(payment_method) || options[:wallet_type] == :google_pay ? :network_token : :credit
+          type = if network_token?(payment_method) || options[:wallet_type] == :google_pay
+                   if network_token?(payment_method) && payment_method.payment_data
+                     :encrypted_wallet
+                   else
+                     :network_token
+                   end
+                 else
+                   :credit
+                 end
 
           { payment_type: type }
         end
