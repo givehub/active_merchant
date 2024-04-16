@@ -18,12 +18,11 @@ class CheckoutV2Test < Test::Unit::TestCase
   end
 
   def test_setup_access_token_should_rise_an_exception_under_bad_request
-    error = assert_raises(ActiveMerchant::OAuthResponseError) do
-      @gateway.expects(:raw_ssl_request).returns(Net::HTTPBadRequest.new(1.0, 400, 'Bad Request'))
-      @gateway.send(:setup_access_token)
-    end
-
-    assert_match(/Failed with 400 Bad Request/, error.message)
+    @gateway_oauth.options[:access_token] = nil
+    @gateway_oauth.expects(:ssl_request).raises(error_400_response)
+    assert response = @gateway_oauth.send(:setup_access_token)
+    assert_failure response
+    assert_match(/invalid_client/, response.message)
   end
 
   def test_successful_purchase
@@ -1405,6 +1404,13 @@ class CheckoutV2Test < Test::Unit::TestCase
         "request_id": "e5a3ce6f-a4e9-4445-9ec7-e5975e9a6213","error_type": "request_invalid","error_codes": ["card_expired"]
       }
     )
+  end
+
+  def error_400_response
+    mock_response = Net::HTTPUnauthorized.new('1.1', '401', 'Unauthorized')
+    mock_response.stubs(:body).returns('{"error":"invalid_client"}')
+
+    ActiveMerchant::ResponseError.new(mock_response)
   end
 
   def error_4xx_response

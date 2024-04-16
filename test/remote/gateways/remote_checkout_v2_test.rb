@@ -161,19 +161,22 @@ class RemoteCheckoutV2Test < Test::Unit::TestCase
   end
 
   def test_failed_access_token
-    assert_raises(ActiveMerchant::OAuthResponseError) do
-      gateway = CheckoutV2Gateway.new({ client_id: 'YOUR_CLIENT_ID', client_secret: 'YOUR_CLIENT_SECRET' })
-      gateway.send :setup_access_token
-    end
+    gateway = CheckoutV2Gateway.new({ client_id: 'YOUR_CLIENT_ID', client_secret: 'YOUR_CLIENT_SECRET' })
+    response = gateway.send :setup_access_token
+    assert_failure response
+    assert_instance_of(Response, response)
+    refute_instance_of(MultiResponse, response)
+    assert_match(/invalid_client/, response.message)
   end
 
-  def test_failed_purchase_with_failed_access_token
-    error = assert_raises(ActiveMerchant::OAuthResponseError) do
-      gateway = CheckoutV2Gateway.new({ client_id: 'YOUR_CLIENT_ID', client_secret: 'YOUR_CLIENT_SECRET' })
-      gateway.purchase(@amount, @credit_card, @options)
-    end
+  def test_failed_purchase_with_failed_oauth_credentials
+    gateway = CheckoutV2Gateway.new({ client_id: 'YOUR_CLIENT_ID', client_secret: 'YOUR_CLIENT_SECRET' })
 
-    assert_equal error.message, 'Failed with 400 Bad Request'
+    assert response = gateway.purchase(@amount, @credit_card_cit, @options)
+    assert_failure response
+    refute_instance_of(Response, response)
+    assert_instance_of(MultiResponse, response)
+    assert_match(/invalid_client/, response.message)
   end
 
   def test_transcript_scrubbing
@@ -229,6 +232,23 @@ class RemoteCheckoutV2Test < Test::Unit::TestCase
     response = @gateway_oauth.purchase(@amount, @credit_card, @options)
     assert_success response
     assert_equal 'Succeeded', response.message
+  end
+
+  def test_successful_purchase_via_oauth_with_access_token
+    assert_nil @gateway_oauth.options[:access_token]
+    purchase = @gateway_oauth.purchase(@amount, @credit_card, @options)
+    assert_success purchase
+    access_token = @gateway_oauth.options[:access_token]
+    response = @gateway_oauth.purchase(@amount, @credit_card, @options)
+    assert_success response
+    assert_equal @gateway_oauth.options[:access_token], access_token
+  end
+
+  def test_successful_purchase_via_oauth_with_retry_because_an_invalid_access_token
+    @gateway_oauth.options[:access_token] = 'ABC123'
+    response = @gateway_oauth.purchase(@amount, @credit_card, @options)
+    assert_success response
+    assert_not_equal 'ABC123', @gateway_oauth.options[:access_token]
   end
 
   def test_successful_purchase_with_vts_network_token

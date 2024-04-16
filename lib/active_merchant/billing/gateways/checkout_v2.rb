@@ -17,14 +17,10 @@ module ActiveMerchant #:nodoc:
       TEST_ACCESS_TOKEN_URL = 'https://access.sandbox.checkout.com/connect/token'
 
       def initialize(options = {})
-        @options = options
-        @access_token = options[:access_token] || nil
-
         if options.has_key?(:secret_key)
           requires!(options, :secret_key)
         else
           requires!(options, :client_id, :client_secret)
-          @access_token ||= setup_access_token
         end
 
         super
@@ -459,29 +455,28 @@ module ActiveMerchant #:nodoc:
       end
 
       def setup_access_token
-        request = 'grant_type=client_credentials'
-        begin
-          raw_response = ssl_post(access_token_url, request, access_token_header)
-        rescue ResponseError => e
-          raise OAuthResponseError.new(e)
-        else
-          response = parse(raw_response)
+        return if @options[:secret_key] || @options[:access_token]
 
-          if (access_token = response['access_token'])
-            access_token
-          else
-            raise OAuthResponseError.new(response)
-          end
-        end
+        response = parse(ssl_post(access_token_url, 'grant_type=client_credentials', access_token_header))
+        @options[:access_token] = response['access_token']
+      rescue ResponseError => e
+        @multiresponse = MultiResponse.new
+        @multiresponse.process { Response.new(false, e.response.body.to_s, {}, test: test?) }
       end
 
       def commit(action, post, options, authorization = nil, method = :post)
+        setup_access_token
         begin
           raw_response = ssl_request(method, url(action, authorization), post.nil? || post.empty? ? nil : post.to_json, headers(action, options))
           response = parse(raw_response)
           response['id'] = response['_links']['payment']['href'].split('/')[-1] if action == :capture && response.key?('_links')
           source_id = authorization if action == :unstore
         rescue ResponseError => e
+          if e.response.to_s.match?(/Unauthorized/) && @options[:access_token] && action != :tokens
+            @options[:access_token] = nil
+            return commit(action, post, options, authorization, method)
+          end
+
           raise unless e.response.code.to_s =~ /4\d\d/
 
           response = parse(e.response.body, error: e.response)
@@ -489,7 +484,13 @@ module ActiveMerchant #:nodoc:
 
         succeeded = success_from(action, response)
 
-        response(action, succeeded, response, options, source_id)
+        resp = response(action, succeeded, response, options, source_id)
+
+        return resp unless @multiresponse.present?
+
+        @multiresponse.process { resp }
+
+        @multiresponse
       end
 
       def response(action, succeeded, response, options = {}, source_id = nil)
@@ -498,7 +499,7 @@ module ActiveMerchant #:nodoc:
         Response.new(
           succeeded,
           message_from(succeeded, response, options),
-          body,
+          body.merge({ 'access_token' => @options[:access_token] }),
           authorization: authorization,
           error_code: error_code_from(succeeded, body, options),
           test: test?,
@@ -508,7 +509,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def headers(action, options)
-        auth_token = @access_token ? "Bearer #{@access_token}" : @options[:secret_key]
+        auth_token = @options[:access_token] ? "Bearer #{@options[:access_token]}" : @options[:secret_key]
         auth_token = @options[:public_key] if action == :tokens
         headers = {
           'Authorization' => auth_token,
