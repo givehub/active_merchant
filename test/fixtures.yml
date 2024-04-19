@@ -889,6 +889,11 @@ paypal_signature:
   password: HBC6A84QLRWC923A
   signature: AFcWxV21C7fd0v3bYYYRCpSSRl31AC-11AKBL8FFO9tjImL311y8a0hx
 
+# Working credentials, no need to replace
+payrix:
+  some_credential: SOMECREDENTIAL
+  another_credential: ANOTHERCREDENTIAL
+
 paysafe:
   login: SOMECREDENTIAL
   secret_key: ANOTHERCREDENTIAL
