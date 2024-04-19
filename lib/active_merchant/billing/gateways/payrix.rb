@@ -1,49 +1,45 @@
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     class PayrixGateway < Gateway
-      self.test_url = 'https://example.com/test'
-      self.live_url = 'https://example.com/live'
+      self.test_url = 'https://test-api.payrix.com/'
+      self.live_url = 'https://api.payrix.com'
 
       self.supported_countries = ['US']
       self.default_currency = 'USD'
       self.supported_cardtypes = %i[visa master american_express discover]
 
-      self.homepage_url = 'http://www.example.net/'
-      self.display_name = 'New Gateway'
+      self.homepage_url = 'https://www.payrix.com/'
+      self.display_name = 'Payrix REST'
 
-      STANDARD_ERROR_CODE_MAPPING = {}
+      CREDIT_CARD_CODES = {
+        american_express: '1',
+        visa: '2',
+        master: '3',
+        diners_club: '4',
+        discover: '5'
+      }
 
       def initialize(options = {})
-        requires!(options, :some_credential, :another_credential)
+        requires!(options, :merchant_id, :api_key)
         super
       end
 
       def purchase(money, payment, options = {})
-        post = {}
-        add_invoice(post, money, options)
-        add_payment(post, payment)
-        add_address(post, payment, options)
-        add_customer_data(post, options)
+        post = build_purchase_request(money, payment, options)
 
-        commit('sale', post)
+        commit('txns', post)
       end
 
       def authorize(money, payment, options = {})
-        post = {}
-        add_invoice(post, money, options)
-        add_payment(post, payment)
-        add_address(post, payment, options)
-        add_customer_data(post, options)
-
-        commit('authonly', post)
+        commit('txns', post)
       end
 
       def capture(money, authorization, options = {})
-        commit('capture', post)
+        commit('txns', post)
       end
 
       def refund(money, authorization, options = {})
-        commit('refund', post)
+        commit('txns', post)
       end
 
       def void(authorization, options = {})
@@ -67,16 +63,41 @@ module ActiveMerchant #:nodoc:
 
       private
 
+      def build_purchase_request(money, payment, options)
+        post = {}
+        add_merchant(post, options)
+        add_payment(post, payment)
+        add_invoice(post, money, options)
+        add_transaction_details(post, options)
+        post
+      end
+
       def add_customer_data(post, options); end
 
       def add_address(post, creditcard, options); end
 
+      def add_merchant(post, options)
+        post[:merchant] = options[:merchant_id]
+      end
+
+      def add_payment(post, payment)
+        post[:payment] = {
+          method: CREDIT_CARD_CODES[payment.brand],
+          number: payment.number,
+          cvv: payment.verification_value
+        }
+      end
+
       def add_invoice(post, money, options)
-        post[:amount] = amount(money)
+        post[:total] = amount(money)
         post[:currency] = (options[:currency] || currency(money))
       end
 
-      def add_payment(post, payment); end
+      def add_transaction_details(post, options)
+        post[:type] = options[:type]
+        post[:origin] = options[:origin]
+        post[:expiration] = options[:expiration]
+      end
 
       def parse(body)
         {}
@@ -108,7 +129,7 @@ module ActiveMerchant #:nodoc:
 
       def error_code_from(response)
         unless success_from(response)
-          # TODO: lookup error code for this response
+          response['errors'].first['errorCode']
         end
       end
     end
