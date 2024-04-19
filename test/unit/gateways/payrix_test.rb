@@ -2,7 +2,7 @@ require 'test_helper'
 
 class PayrixTest < Test::Unit::TestCase
   def setup
-    @gateway = PayrixGateway.new(some_credential: 'login', another_credential: 'password')
+    @gateway = PayrixGateway.new(merchant_id: 'SOMECREDENTIAL', api_key: 'ANOTHERCREDENTIAL')
     @credit_card = credit_card
     @amount = 100
 
