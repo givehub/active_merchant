@@ -1,14 +1,14 @@
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     class PayrixGateway < Gateway
-      self.test_url = 'https://test-api.payrix.com/'
+      self.test_url = 'https://test-api.payrix.com'
       self.live_url = 'https://api.payrix.com'
 
       self.supported_countries = ['US']
       self.default_currency = 'USD'
-      self.supported_cardtypes = %i[visa master american_express discover]
+      self.supported_cardtypes = %i[visa master american_express discover diners_club]
 
-      self.homepage_url = 'https://www.payrix.com/'
+      self.homepage_url = 'https://www.payrix.com'
       self.display_name = 'Payrix REST'
 
       CREDIT_CARD_CODES = {
@@ -27,7 +27,7 @@ module ActiveMerchant #:nodoc:
       def purchase(money, payment, options = {})
         post = build_purchase_request(money, payment, options)
 
-        commit('txns', post)
+        commit('txns', post, options)
       end
 
       def authorize(money, payment, options = {})
@@ -77,12 +77,12 @@ module ActiveMerchant #:nodoc:
       def add_address(post, creditcard, options); end
 
       def add_merchant(post, options)
-        post[:merchant] = options[:merchant_id]
+        post[:merchant] = options[:merchant_id] || @options[:merchant_id]
       end
 
       def add_payment(post, payment)
         post[:payment] = {
-          method: CREDIT_CARD_CODES[payment.brand],
+          method: CREDIT_CARD_CODES[:"#{payment.brand}"],
           number: payment.number,
           cvv: payment.verification_value
         }
@@ -94,18 +94,19 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_transaction_details(post, options)
-        post[:type] = options[:type]
-        post[:origin] = options[:origin]
-        post[:expiration] = options[:expiration]
+        post[:type] = options[:type] || @options[:type] || '1'
+        post[:origin] = options[:origin] || @options[:origin] || '2'
+        post[:expiration] = options[:expiration] || @options[:expiration] || '0120'
       end
 
       def parse(body)
-        {}
+        JSON.parse(body)
       end
 
-      def commit(action, parameters)
+      def commit(action, parameters, options={})
         url = (test? ? test_url : live_url)
-        response = parse(ssl_post(url, post_data(action, parameters)))
+        endpoint = url + '/' + action
+        response = parse(ssl_post(endpoint, parameters.to_json, auth_headers(options)))
 
         Response.new(
           success_from(response),
@@ -119,17 +120,25 @@ module ActiveMerchant #:nodoc:
         )
       end
 
-      def success_from(response); end
+      def auth_headers(options)
+        {
+          'Content-Type' => 'application/json',
+          'APIKEY' => options[:api_key] || @options[:api_key]
+        }
+      end
 
-      def message_from(response); end
+      def success_from(response)
+        response["response"]["errors"].empty? ? true : false
+      end
+
+      def message_from(response)
+        return "Request Successful" if success_from(response)
+      end
 
       def authorization_from(response); end
 
-      def post_data(action, parameters = {}); end
-
       def error_code_from(response)
         unless success_from(response)
-          response['errors'].first['errorCode']
         end
       end
     end

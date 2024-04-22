@@ -16,7 +16,7 @@ class RemotePayrixTest < Test::Unit::TestCase
   def test_successful_purchase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
-    assert_equal 'REPLACE WITH SUCCESS MESSAGE', response.message
+    assert_equal 'Request Successful', response.message
   end
 
   def test_successful_purchase_with_more_options
