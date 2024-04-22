@@ -9,7 +9,10 @@ class PayrixTest < Test::Unit::TestCase
     @options = {
       order_id: '1',
       billing_address: address,
-      description: 'Store Purchase'
+      description: 'Store Purchase',
+      type: '1',
+      origin: '2',
+      expiration: '0120'
     }
   end
 
@@ -19,7 +22,7 @@ class PayrixTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
 
-    assert_equal 'REPLACE', response.authorization
+    assert_equal 't1_txn_6626c4364e5731144453863|1', response.authorization
     assert response.test?
   end
 
@@ -28,7 +31,7 @@ class PayrixTest < Test::Unit::TestCase
 
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_failure response
-    assert_equal Gateway::STANDARD_ERROR_CODE[:card_declined], response.error_code
+    assert_equal PayrixGateway::STANDARD_ERROR_CODE[:invalid_card_number], response.error_code
   end
 
   def test_successful_authorize; end
@@ -95,17 +98,16 @@ class PayrixTest < Test::Unit::TestCase
   end
 
   def successful_purchase_response
-    %(
-      Easy to capture by setting the DEBUG_ACTIVE_MERCHANT environment variable
-      to "true" when running remote tests:
-
-      $ DEBUG_ACTIVE_MERCHANT=true ruby -Itest \
-        test/remote/gateways/remote_payrix_test.rb \
-        -n test_successful_purchase
-    )
+    <<-RESPONSE
+      {"response":{"data":[{"payment":{"method":2,"number":"2224"},"id":"t1_txn_6626c4364e5731144453863","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","type":"1","expiration":"0120","currency":"USD","origin":"2","total":1,"swiped":0,"emv":0,"signature":0}],"details":{"requestId":1},"errors":[]}}
+    RESPONSE
   end
 
-  def failed_purchase_response; end
+  def failed_purchase_response
+    <<-RESPONSE
+      {"response":{"data":[],"details":{"requestId":1},"errors":[{"field":"payment.number","code":15,"severity":2,"msg":"Invalid credit card/debit card number","errorCode":"invalid_card_number"}]}}
+    RESPONSE
+  end
 
   def successful_authorize_response; end
 

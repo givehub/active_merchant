@@ -19,6 +19,10 @@ module ActiveMerchant #:nodoc:
         discover: '5'
       }
 
+      STANDARD_ERROR_CODE = {
+        invalid_card_number: 'invalid_card_number'
+      }
+
       def initialize(options = {})
         requires!(options, :merchant_id, :api_key)
         super
@@ -139,10 +143,19 @@ module ActiveMerchant #:nodoc:
         return "Request Successful" if success_from(response)
       end
 
-      def authorization_from(response); end
+      def authorization_from(response)
+        id = response.try(:[], "response").try(:[], "data").first.try(:[], "id")
+        total = response.try(:[], "response").try(:[], "data").first.try(:[], "total")
+
+        return '|' if id.blank? && total.blank?
+        return "#{id}|" if total.blank?
+
+        [id, total].join('|')
+      end
 
       def error_code_from(response)
         unless success_from(response)
+          response["response"]["errors"].first["errorCode"]
         end
       end
     end
