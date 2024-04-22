@@ -102,9 +102,9 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_transaction_details(post, options)
-        post[:type] = options[:type] || @options[:type] || '1'
-        post[:origin] = options[:origin] || @options[:origin] || '2'
-        post[:expiration] = options[:expiration] || @options[:expiration] || '0120'
+        post[:type] = options[:type] || @options[:type]
+        post[:origin] = options[:origin] || @options[:origin]
+        post[:expiration] = options[:expiration] || @options[:expiration]
       end
 
       def parse(body)
