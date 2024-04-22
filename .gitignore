@@ -10,3 +10,6 @@ Gemfile*.lock
 .rvmrc
 /doc/
 .ruby-version
+# asdf
+.tool-versions
+.byebug_history
