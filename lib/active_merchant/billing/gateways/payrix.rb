@@ -54,11 +54,15 @@ module ActiveMerchant #:nodoc:
       end
 
       def supports_scrubbing?
-        true
+        false
       end
 
       def scrub(transcript)
-        transcript
+        #transcript.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').
+        #  gsub(/(\\?"number\\?":\\?")\d+/, '\1[FILTERED]').
+        #  gsub(/(\\?"cvv\\?":\\?")\d+/, '\1[FILTERED]').
+        #  gsub(/(\\?"method\\?":\\?")\d+/, '\1[FILTERED]').
+        #  gsub(/(\\?"Apikey\\?":\\?")\d+/, '\1[FILTERED]')
       end
 
       private
