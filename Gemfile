@@ -10,6 +10,7 @@ group :test, :remote_test do
   gem 'byebug'
   gem 'jose', '~> 1.1.3'
   gem 'jwe'
+  gem 'm' # run minitest by line number like you can easily do in rspec
   gem 'mechanize'
   gem 'timecop'
 end
