@@ -29,6 +29,10 @@ module ActiveMerchant #:nodoc:
         options[:api_key] || gateway.options[:api_key]
       end
 
+      def self.merchant_id(options:, gateway:)
+        options[:merchant_id] || gateway.options[:merchant_id]
+      end
+
       def initialize(options = {})
         requires!(options, :merchant_id, :api_key)
         super
@@ -68,14 +72,13 @@ module ActiveMerchant #:nodoc:
         payment,
         options = {}
       )
-        params = BuildPurchaseRequestParams.new.call(money: money, payment: payment, options: options, gateway: self)
+        merchant_id = self.class.merchant_id(options: options, gateway: self)
+        params = BuildPurchaseRequestParams.new.call(money: money, payment: payment, options: options, gateway: self, merchant_id: merchant_id)
         api_key = self.class.api_key(options: options, gateway: self)
         env = test? ? :test : :production
         # TODO: purchase timeout configurable by env var? or whatever is idiomatic in ActiveMerchant
         timeout_ms = 5000
-
         result = Payrix::CreateTransaction.new.call(params: params, api_key: api_key, env: env, timeout_ms: timeout_ms)
-        # byebug
         if result.success?
           success = true
           error_message = nil
@@ -84,14 +87,10 @@ module ActiveMerchant #:nodoc:
           avs = GetAvsFromPurchaseResponse.new.call(response: result.api_response)
           cvv = GetCvvFromPurchaseResponse.new.call(response: result.api_response)
           options = {
-            # TODO: extract this from the response
             authorization: authorization,
-            # TODO: extract this from the response
             avs_result: avs,
-            # TODO: extract this from the response
             cvv_result: cvv,
-            test: test?,
-            error_code: error_code
+            test: test?
           }
         else
           success = false
@@ -103,11 +102,11 @@ module ActiveMerchant #:nodoc:
           error_code = MapPayrixErrorCodeToActiveMerchantErrorCode.new.call(payrix_error_code: payrix_error_code)
           params = {}
           options = {
-            # TODO: extract this from the response
+            # TODO: extract this from the response?
             authorization: nil,
-            # TODO: extract this from the response
+            # TODO: extract this from the response?
             avs_result: nil,
-            # TODO: extract this from the response
+            # TODO: extract this from the response?
             cvv_result: nil,
             test: test?,
             error_code: error_code
@@ -120,8 +119,9 @@ module ActiveMerchant #:nodoc:
 
       class GetAuthorizationFromPurchaseResponse
         def call(response:)
-          id = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'id')
-          total = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'total')
+          data = response.dig(:response, :data)
+          id = data.first[:id]
+          total = data.first[:total]
 
           return '|' if id.blank? && total.blank?
           return "#{id}|" if total.blank?
@@ -132,10 +132,11 @@ module ActiveMerchant #:nodoc:
 
       class GetAvsFromPurchaseResponse
         def call(response:)
-          code = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'avsResponse')
-          message = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'avsResponseMessage')
-          postal_match = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'avsPostalMatch')
-          street_match = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'avsStreetMatch')
+          data = response.dig(:response, :data)
+          code = data.first[:avsResponse]
+          message = data.first[:avsResponseMessage]
+          postal_match = data.first[:avsPostalMatch]
+          street_match = data.first[:avsStreetMatch]
 
           AVSResult.new(code: code, message: message, postal_match: postal_match, street_match: street_match)
         end
@@ -143,19 +144,21 @@ module ActiveMerchant #:nodoc:
 
       class GetCvvFromPurchaseResponse
         def call(response:)
-          code = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'cvvResponse')
-          message = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'cvvResponseMessage')
+          data = response.dig(:response, :data)
+          # Result of the Card Verification Value check
+          # TODO: make sure we're getting the right field here
+          code = data.first[:cvvStatus] || ''
 
-          CVVResult.new(code: code, message: message)
+          CVVResult.new(code)
         end
       end
 
       class BuildPurchaseRequestParams
-        def call(gateway:, money:, payment:, options:)
+        def call(gateway:, money:, payment:, merchant_id:, options:, currency: nil)
           params = {}
-          self.class.add_merchant!(params: params, options: options)
+          self.class.add_merchant!(params: params, merchant_id: merchant_id)
           self.class.add_payment!(params: params, payment: payment)
-          self.class.add_invoice!(params: params, money: money, options: options, gateway: gateway)
+          self.class.add_invoice!(params: params, money: money, currency: currency, gateway: gateway, options: options)
           self.class.add_transaction_details!(params: params, options: options)
           params
         end
@@ -164,8 +167,8 @@ module ActiveMerchant #:nodoc:
 
         def self.add_address!(params:, creditcard:, options:); end
 
-        def self.add_merchant!(params:, options:)
-          params[:merchant] = options[:merchant_id]
+        def self.add_merchant!(params:, merchant_id:)
+          params[:merchant] = merchant_id
         end
 
         def self.add_payment!(params:, payment:)
@@ -176,9 +179,9 @@ module ActiveMerchant #:nodoc:
           }
         end
 
-        def self.add_invoice!(params:, money:, options:, gateway:)
+        def self.add_invoice!(params:, money:, currency:, gateway:, options:)
           params[:total] = gateway.send(:amount, money)
-          params[:currency] = (options[:currency] || gateway.send(:currency, money))
+          params[:currency] = (currency || gateway.send(:currency, money))
         end
 
         def self.add_transaction_details!(params:, options:)

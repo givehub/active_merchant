@@ -16,16 +16,6 @@ class PayrixTest < Test::Unit::TestCase
     }
   end
 
-  # def test_successful_purchase
-  #   @gateway.expects(:ssl_post).returns(successful_purchase_response)
-
-  #   response = @gateway.purchase(@amount, @credit_card, @options)
-  #   assert_success response
-
-  #   assert_equal 't1_txn_6626c4364e5731144453863|1', response.authorization
-  #   assert response.test?
-  # end
-
   def invalid_merchant_id
     'SOMECREDENTIAL'
   end
@@ -75,21 +65,31 @@ class PayrixTest < Test::Unit::TestCase
     gateway = PayrixGateway.new(merchant_id: valid_merchant_id, api_key: valid_api_key)
 
     response = gateway.purchase(money, payment, options)
-    # Current response:
-    # <ActiveMerchant::Billing::Response:0x00000001493d6130 @params={}, @message="Field: merchant, Code: 15, Severity: 2, Msg: The referenced resource does not exist, ErrorCode: no_such_record", @success=false, @test=true, @authorization=nil, @fraud_review=nil, @error_code=nil, @emv_authorization=nil, @network_transaction_id=nil, @avs_result={"code"=>nil, "message"=>nil, "street_match"=>nil, "postal_match"=>nil}, @cvv_result={"code"=>nil, "message"=>nil}>
-    # byebug
 
-    # TODO: assertions
+    assert response.success?
+    assert response.authorization.start_with?('t1_txn_')
+    assert response.authorization.end_with?('|1')
+    assert response.test?
   end
 
-  # TODO: test failed purchase due to invalid card number once the happy path is working
-  # def test_failed_purchase
-  #   @gateway.expects(:ssl_post).returns(failed_purchase_response)
-  # 
-  #   response = @gateway.purchase(@amount, @credit_card, @options)
-  #   assert_failure response
-  #   assert_equal PayrixGateway::STANDARD_ERROR_CODE[:invalid_card_number], response.error_code
-  # end
+  def test_failed_purchase_due_to_invalid_card_number
+    money = 100
+    payment = credit_card
+    options = {
+      order_id: '1',
+      billing_address: address,
+      description: 'Store Purchase',
+      type: '1',
+      origin: '2',
+      expiration: '0000' # invalid expiration
+    }
+    gateway = PayrixGateway.new(merchant_id: valid_merchant_id, api_key: valid_api_key)
+
+    response = gateway.purchase(money, payment, options)
+
+    refute response.success?
+    assert_equal PayrixGateway::STANDARD_ERROR_CODE[:invalid_card_number], response.error_code
+  end
 
   def test_successful_authorize; end
 
