@@ -39,7 +39,7 @@ module Payrix
 
     public
 
-    Result = Struct.new(:success?, :error_message, :api_response, :data, keyword_init: true)
+    Result = Struct.new(:success?, :error_message, :error_reason, :api_response, :data, keyword_init: true)
 
     def call(params:, api_key:, env: :test, timeout_ms: 5000)
       endpoint = self.class.endpoint(env: env)
@@ -62,12 +62,12 @@ module Payrix
           "ErrorCode: #{error[:errorCode]}"
         end.uniq.join(', ')
 
-        Result.new(success?: false, error_message: message || 'Error occurred')
+        Result.new(success?: false, error_message: message || 'Error occurred', error_reason: :api_error, api_response: api_response)
       end
     rescue JSON::ParserError => e
-      Result.new(success?: false, error_message: "Failed to parse JSON: #{e.message}")
+      Result.new(success?: false, error_message: "Failed to parse JSON: #{e.message}", error_reason: :json_parse_error)
     rescue Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout => e
-      Result.new(success?: false, error_message: "Request timed out: #{e.message}")
+      Result.new(success?: false, error_message: "Request timed out: #{e.message}", error_reason: :timeout)
     end
 
     def self.endpoint(env:)
