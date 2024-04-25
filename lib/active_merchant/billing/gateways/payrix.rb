@@ -80,13 +80,16 @@ module ActiveMerchant #:nodoc:
           success = true
           error_message = nil
           params = {}
+          authorization = GetAuthorizationFromPurchaseResponse.new.call(response: result.api_response)
+          avs = GetAvsFromPurchaseResponse.new.call(response: result.api_response)
+          cvv = GetCvvFromPurchaseResponse.new.call(response: result.api_response)
           options = {
             # TODO: extract this from the response
-            authorization: nil,
+            authorization: authorization,
             # TODO: extract this from the response
-            avs_result: nil,
+            avs_result: avs,
             # TODO: extract this from the response
-            cvv_result: nil,
+            cvv_result: cvv,
             test: test?,
             error_code: error_code
           }
@@ -109,11 +112,42 @@ module ActiveMerchant #:nodoc:
             test: test?,
             error_code: error_code
           }
-
         end
 
         # Response docs: https://www.rubydoc.info/github/Shopify/active_merchant/ActiveMerchant/Billing/Response
         Response.new(success, error_message, params, options)
+      end
+
+      class GetAuthorizationFromPurchaseResponse
+        def call(response:)
+          id = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'id')
+          total = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'total')
+
+          return '|' if id.blank? && total.blank?
+          return "#{id}|" if total.blank?
+
+          [id, total].join('|')
+        end
+      end
+
+      class GetAvsFromPurchaseResponse
+        def call(response:)
+          code = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'avsResponse')
+          message = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'avsResponseMessage')
+          postal_match = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'avsPostalMatch')
+          street_match = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'avsStreetMatch')
+
+          AVSResult.new(code: code, message: message, postal_match: postal_match, street_match: street_match)
+        end
+      end
+
+      class GetCvvFromPurchaseResponse
+        def call(response:)
+          code = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'cvvResponse')
+          message = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'cvvResponseMessage')
+
+          CVVResult.new(code: code, message: message)
+        end
       end
 
       class BuildPurchaseRequestParams
@@ -206,8 +240,8 @@ module ActiveMerchant #:nodoc:
           message_from(response),
           response,
           authorization: authorization_from(response),
-          avs_result: AVSResult.new(code: response['some_avs_response_key']),
-          cvv_result: CVVResult.new(response['some_cvv_response_key']),
+          avs_result: GetAvsFromPurchaseResponse.new.call(response: response),
+          cvv_result: GetCvvFromPurchaseResponse.new.call(response: response),
           test: test?,
           error_code: error_code_from(response)
         )
@@ -226,16 +260,6 @@ module ActiveMerchant #:nodoc:
 
       def message_from(response)
         return self.success_message if success_from(response)
-      end
-
-      def authorization_from(response)
-        id = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'id')
-        total = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'total')
-
-        return '|' if id.blank? && total.blank?
-        return "#{id}|" if total.blank?
-
-        [id, total].join('|')
       end
 
       def error_code_from(response)
