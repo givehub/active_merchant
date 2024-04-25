@@ -58,7 +58,7 @@ class PayrixTest < Test::Unit::TestCase
     response = gateway.purchase(money, payment, options)
 
     assert_failure response
-    assert_equal PayrixGateway::STANDARD_ERROR_CODE[:invalid_credentials], response.error_code
+    assert_equal PayrixGateway::STANDARD_ERROR_CODE[:config_error], response.error_code
   end
 
   def test_purchase

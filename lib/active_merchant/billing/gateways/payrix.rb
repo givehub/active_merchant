@@ -21,10 +21,6 @@ module ActiveMerchant #:nodoc:
         discover: '5'
       }
 
-      STANDARD_ERROR_CODE = {
-        invalid_card_number: 'invalid_card_number'
-      }
-
       def self.success_message
         'Request Successful'
       end
@@ -81,7 +77,19 @@ module ActiveMerchant #:nodoc:
         result = Payrix::CreateTransaction.new.call(params: params, api_key: api_key, env: env, timeout_ms: timeout_ms)
         # byebug
         if result.success?
-          # TODO: Response for success
+          success = true
+          error_message = nil
+          params = {}
+          options = {
+            # TODO: extract this from the response
+            authorization: nil,
+            # TODO: extract this from the response
+            avs_result: nil,
+            # TODO: extract this from the response
+            cvv_result: nil,
+            test: test?,
+            error_code: error_code
+          }
         else
           success = false
           # ex: "Field: , Code: 4, Severity: 3, Msg: Invalid authentication, ErrorCode: invalid_auth"
@@ -90,9 +98,9 @@ module ActiveMerchant #:nodoc:
           errors = result.errors
           payrix_error_code = errors.first[:errorCode]
           error_code = MapPayrixErrorCodeToActiveMerchantErrorCode.new.call(payrix_error_code: payrix_error_code)
-
           params = {}
           options = {
+            # TODO: extract this from the response
             authorization: nil,
             # TODO: extract this from the response
             avs_result: nil,
@@ -102,9 +110,10 @@ module ActiveMerchant #:nodoc:
             error_code: error_code
           }
 
-          # Response docs: https://www.rubydoc.info/github/Shopify/active_merchant/ActiveMerchant/Billing/Response
-          return Response.new(success, error_message, params, options)
         end
+
+        # Response docs: https://www.rubydoc.info/github/Shopify/active_merchant/ActiveMerchant/Billing/Response
+        Response.new(success, error_message, params, options)
       end
 
       class BuildPurchaseRequestParams
