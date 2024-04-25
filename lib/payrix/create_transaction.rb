@@ -39,13 +39,13 @@ module Payrix
 
     public
 
-    Result = Struct.new(:success?, :error_message, :error_reason, :api_response, :data, keyword_init: true)
+    Result = Struct.new(:success?, :error_message, :error_reason, :api_response, :data, :errors, keyword_init: true)
 
     def call(params:, api_key:, env: :test, timeout_ms: 5000)
       endpoint = self.class.endpoint(env: env)
 
       api_response = get_api_response.call(params: params, api_key: api_key, endpoint: endpoint, timeout_ms: timeout_ms)
-      errors = api_response.dig(:response, :errors)
+      errors = api_response[:errors] || api_response.dig(:response, :errors)
 
       if errors.blank?
         data = api_response.dig(:response, :data)
@@ -62,7 +62,7 @@ module Payrix
           "ErrorCode: #{error[:errorCode]}"
         end.uniq.join(', ')
 
-        Result.new(success?: false, error_message: message || 'Error occurred', error_reason: :api_error, api_response: api_response)
+        Result.new(success?: false, error_message: message || 'Error occurred', error_reason: :api_error, api_response: api_response, errors: errors)
       end
     rescue JSON::ParserError => e
       Result.new(success?: false, error_message: "Failed to parse JSON: #{e.message}", error_reason: :json_parse_error)

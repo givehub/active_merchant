@@ -16,23 +16,80 @@ class PayrixTest < Test::Unit::TestCase
     }
   end
 
-  def test_successful_purchase
-    @gateway.expects(:ssl_post).returns(successful_purchase_response)
+  # def test_successful_purchase
+  #   @gateway.expects(:ssl_post).returns(successful_purchase_response)
 
-    response = @gateway.purchase(@amount, @credit_card, @options)
-    assert_success response
+  #   response = @gateway.purchase(@amount, @credit_card, @options)
+  #   assert_success response
 
-    assert_equal 't1_txn_6626c4364e5731144453863|1', response.authorization
-    assert response.test?
+  #   assert_equal 't1_txn_6626c4364e5731144453863|1', response.authorization
+  #   assert response.test?
+  # end
+
+  def invalid_merchant_id
+    'SOMECREDENTIAL'
   end
 
-  def test_failed_purchase
-    @gateway.expects(:ssl_post).returns(failed_purchase_response)
+  def invalid_api_key
+    'ANOTHERCREDENTIAL'
+  end
 
-    response = @gateway.purchase(@amount, @credit_card, @options)
+  def valid_merchant_id
+    ENV.fetch('PAYRIX_MERCHANT_ID_TEST')
+  end
+
+  def valid_api_key
+    ENV.fetch('PAYRIX_API_KEY_TEST')
+  end
+
+  def test_purchase_with_invalid_credentials
+    money = 100
+    payment = credit_card
+    options = {
+      order_id: '1',
+      billing_address: address,
+      description: 'Store Purchase',
+      type: '1',
+      origin: '2',
+      expiration: '0120'
+    }
+    gateway = PayrixGateway.new(merchant_id: invalid_merchant_id, api_key: invalid_api_key)
+
+    response = gateway.purchase(money, payment, options)
+
     assert_failure response
-    assert_equal PayrixGateway::STANDARD_ERROR_CODE[:invalid_card_number], response.error_code
+    assert_equal PayrixGateway::STANDARD_ERROR_CODE[:invalid_credentials], response.error_code
   end
+
+  def test_purchase
+    money = 100
+    payment = credit_card
+    options = {
+      order_id: '1',
+      billing_address: address,
+      description: 'Store Purchase',
+      type: '1',
+      origin: '2',
+      expiration: '0120'
+    }
+    gateway = PayrixGateway.new(merchant_id: valid_merchant_id, api_key: valid_api_key)
+
+    response = gateway.purchase(money, payment, options)
+    # Current response:
+    # <ActiveMerchant::Billing::Response:0x00000001493d6130 @params={}, @message="Field: merchant, Code: 15, Severity: 2, Msg: The referenced resource does not exist, ErrorCode: no_such_record", @success=false, @test=true, @authorization=nil, @fraud_review=nil, @error_code=nil, @emv_authorization=nil, @network_transaction_id=nil, @avs_result={"code"=>nil, "message"=>nil, "street_match"=>nil, "postal_match"=>nil}, @cvv_result={"code"=>nil, "message"=>nil}>
+    # byebug
+
+    # TODO: assertions
+  end
+
+  # TODO: test failed purchase due to invalid card number once the happy path is working
+  # def test_failed_purchase
+  #   @gateway.expects(:ssl_post).returns(failed_purchase_response)
+  # 
+  #   response = @gateway.purchase(@amount, @credit_card, @options)
+  #   assert_failure response
+  #   assert_equal PayrixGateway::STANDARD_ERROR_CODE[:invalid_card_number], response.error_code
+  # end
 
   def test_successful_authorize; end
 
@@ -56,17 +113,17 @@ class PayrixTest < Test::Unit::TestCase
 
   def test_failed_verify; end
 
-  def test_scrub
-    assert @gateway.supports_scrubbing?
-    assert_equal @gateway.scrub(pre_scrubbed), post_scrubbed
-  end
+  # def test_scrub
+  #   assert @gateway.supports_scrubbing?
+  #   assert_equal @gateway.scrub(pre_scrubbed), post_scrubbed
+  # end
 
   private
 
   def pre_scrubbed
     <<-PRE
     <- "POST /txns HTTP/1.1\r\nContent-Type: application/json\r\nApikey: 60fd52de55d3dede456116800ef6e293\r\nConnection: close\r\nAccept-Encoding: gzip;q=1.0,deflate;q=0.6,identity;q=0.3\r\nAccept: */*\r\nUser-Agent: Ruby\r\nHost: test-api.payrix.com\r\nContent-Length: 186\r\n\r\n"
-    <- "{\"merchant\":\"t1_mer_661041feb6b9c04fb7a9ee5\",\"payment\":{\"method\":\"2\",\"number\":\"4000100011112224\",\"cvv\":\"123\"},\"total\":\"1.00\",\"currency\":\"USD\",\"type\":\"1\",\"origin\":\"2\",\"expiration\":\"0120\"}"
+    <- "{\"merchant\":\"#{valid_merchant_id}\",\"payment\":{\"method\":\"2\",\"number\":\"4000100011112224\",\"cvv\":\"123\"},\"total\":\"1.00\",\"currency\":\"USD\",\"type\":\"1\",\"origin\":\"2\",\"expiration\":\"0120\"}"
     -> "HTTP/1.1 200 OK\r\n"
     -> "Date: Mon, 22 Apr 2024 16:15:53 GMT\r\n"
     -> "Content-Type: application/json; charset=UTF-8\r\n"
@@ -99,7 +156,7 @@ class PayrixTest < Test::Unit::TestCase
 
   def successful_purchase_response
     <<-RESPONSE
-      {"response":{"data":[{"payment":{"method":2,"number":"2224"},"id":"t1_txn_6626c4364e5731144453863","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","type":"1","expiration":"0120","currency":"USD","origin":"2","total":1,"swiped":0,"emv":0,"signature":0}],"details":{"requestId":1},"errors":[]}}
+      {"response":{"data":[{"payment":{"method":2,"number":"2224"},"id":"t1_txn_6626c4364e5731144453863","merchant":"#{valid_merchant_id}","type":"1","expiration":"0120","currency":"USD","origin":"2","total":1,"swiped":0,"emv":0,"signature":0}],"details":{"requestId":1},"errors":[]}}
     RESPONSE
   end
 

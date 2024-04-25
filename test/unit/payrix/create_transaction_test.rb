@@ -3,7 +3,7 @@ require 'payrix/create_transaction'
 
 class PayrixCreateTransactionTest < Test::Unit::TestCase
   def test_env_merchant_id
-    't1_mer_661041feb6b9c04fb7a9ee5'
+    ENV.fetch('PAYRIX_MERCHANT_ID_TEST')
   end
 
   def api_key
@@ -77,7 +77,7 @@ class PayrixCreateTransactionTest < Test::Unit::TestCase
         response: {
           data: [
             { emv: 0, expiration: '0120', id: 't1_txn_661eda69cf8834846219121',
-              merchant: 't1_mer_661041feb6b9c04fb7a9ee5', origin: '2',
+              merchant: test_env_merchant_id, origin: '2',
               payment: { method: 2, number: '1111' }, signature: 0, swiped: 0, total: 1000, type: '1' }
           ], details: { requestId: 1 }, errors: []
         }
