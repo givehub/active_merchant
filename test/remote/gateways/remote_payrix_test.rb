@@ -9,7 +9,10 @@ class RemotePayrixTest < Test::Unit::TestCase
     @declined_card = credit_card('4000300011112220')
     @options = {
       billing_address: address,
-      description: 'Store Purchase'
+      description: 'Store Purchase',
+      type: PayrixGateway::TXNS_TYPE[:cc_only_sale],
+      origin: PayrixGateway::TXNS_ORIGIN[:ecommerce_system],
+      expiration: '0120'
     }
   end
 

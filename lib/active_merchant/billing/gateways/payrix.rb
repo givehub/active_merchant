@@ -11,6 +11,23 @@ module ActiveMerchant #:nodoc:
       self.homepage_url = 'https://www.payrix.com'
       self.display_name = 'Payrix REST'
 
+      TXNS_TYPE = {
+        cc_only_sale: '1',
+        cc_only_auth: '2',
+        cc_only_capture: '3',
+        cc_only_reverse_auth: '4',
+        cc_only_refund: '5'
+      }
+
+      TXNS_ORIGIN = {
+        credit_card_terminal: '1',
+        ecommerce_system: '2',
+        mail_or_telephone_order: '3',
+        successful_3dsecure: '5',
+        attempted_3dsecure: '6',
+        recurring: '7'
+      }
+
       CREDIT_CARD_CODES = {
         american_express: '1',
         visa: '2',
