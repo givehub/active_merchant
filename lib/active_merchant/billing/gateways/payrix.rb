@@ -60,6 +60,8 @@ module ActiveMerchant #:nodoc:
       end
 
       def refund(money, authorization, options = {})
+        post = build_refund_request(money, authorization, options)
+
         commit('txns', post)
       end
 
@@ -87,6 +89,15 @@ module ActiveMerchant #:nodoc:
       end
 
       private
+
+      def build_refund_request(money, authorization, options)
+        transaction_id = authorization.split('|').first
+        post = {}
+        post[:fortxn] = transaction_id
+        post[:total] = amount(money)
+        post[:type] = TXNS_TYPE[:cc_only_refund]
+        post
+      end
 
       def build_purchase_request(money, payment, options)
         post = {}
@@ -194,13 +205,13 @@ module ActiveMerchant #:nodoc:
       end
 
       def authorization_from(response)
-        id = response.try(:[], "response").try(:[], "data").first.try(:[], "id")
-        total = response.try(:[], "response").try(:[], "data").first.try(:[], "total")
+        _id = response.try(:[], "response").try(:[], "data").first.try(:[], "id")
+        _total = response.try(:[], "response").try(:[], "data").first.try(:[], "total")
 
-        return '|' if id.blank? && total.blank?
-        return "#{id}|" if total.blank?
+        return '|' if _id.blank? && _total.blank?
+        return "#{_id}|" if _total.blank?
 
-        [id, total].join('|')
+        [_id, _total].join('|')
       end
 
       def error_code_from(response)

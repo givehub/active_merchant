@@ -5,9 +5,10 @@ class PayrixTest < Test::Unit::TestCase
     @gateway = PayrixGateway.new(merchant_id: 'SOMECREDENTIAL', api_key: 'ANOTHERCREDENTIAL')
     @credit_card = credit_card
     @amount = 100
+    @refund_amount = 1
 
     @options = {
-      order_id: '1',
+      order: 'order1',
       billing_address: address,
       description: 'Store Purchase',
       type: PayrixGateway::TXNS_TYPE[:cc_only_sale],
@@ -22,7 +23,7 @@ class PayrixTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
 
-    assert_equal 't1_txn_663285d5990d230318ae771|100', response.authorization
+    assert_equal 't1_txn_66326c57442796049c22978|100', response.authorization
     assert response.test?
   end
 
@@ -42,7 +43,19 @@ class PayrixTest < Test::Unit::TestCase
 
   def test_failed_capture; end
 
-  def test_successful_refund; end
+  def test_successful_refund
+    @gateway.expects(:ssl_post).returns(successful_purchase_response)
+    purchase = @gateway.purchase(@amount, @credit_card, @options)
+    @gateway.expects(:ssl_post).returns(successful_refund_response)
+    response = @gateway.refund(@refund_amount, purchase.authorization, @options)
+
+    assert_success response
+    assert response.test?
+    assert_equal 'Request Successful', response.message
+    assert response.params['response']['data'].first['id'].present?
+    assert response.params['response']['data'].first['fortxn'].present?
+    assert_equal 100, response.params['response']['data'].first['total']
+  end
 
   def test_failed_refund; end
 
@@ -99,7 +112,7 @@ class PayrixTest < Test::Unit::TestCase
 
   def successful_purchase_response
     <<-RESPONSE
-      {"response":{"data":[{"payment":{"id":"g158fe267496346","method":2,"number":"2224","routing":"0","bin":"400010","payment":null,"lastChecked":null,"last4":null,"mask":null},"id":"t1_txn_663285d5990d230318ae771","created":"2024-05-01 14:11:33.6273","modified":"2024-05-01 14:11:35.1438","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"fortxn":null,"fromtxn":null,"batch":"t1_bth_66328504d42e3aa243fc6b2","subscription":null,"type":"1","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"order_id_123","description":"Store Purchase Description","descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":"2","tax":1,"total":100,"cashback":null,"authorization":"46096","approved":"100","cvv":1,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":"165.50.159.143","first":"Joe","middle":"M","last":"Smith","company":"Widgets Inc","email":"joe@example.com","address1":"1234 My Street","address2":"Apt 1","city":"Los Angeles","state":"CA","zip":"90010","country":"USA","phone":"5555555555","status":"1","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":1,"shipping":1,"duty":1,"pin":0,"traceNumber":null,"cvvStatus":null,"unauthReason":null,"fee":1,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":"single","copyReason":null,"originalApproved":"100","currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":1,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":1,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
+      {"response":{"data":[{"payment":{"id":"g158fe267496346","method":2,"number":"2224","routing":"0","bin":"400010","payment":null,"lastChecked":null,"last4":null,"mask":null},"id":"t1_txn_66326c57442796049c22978","created":"2024-05-01 14:11:33.6273","modified":"2024-05-01 14:11:35.1438","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"fortxn":null,"fromtxn":null,"batch":"t1_bth_66328504d42e3aa243fc6b2","subscription":null,"type":"1","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"order_id_123","description":"Store Purchase Description","descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":"2","tax":1,"total":100,"cashback":null,"authorization":"46096","approved":"100","cvv":1,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":"165.50.159.143","first":"Joe","middle":"M","last":"Smith","company":"Widgets Inc","email":"joe@example.com","address1":"1234 My Street","address2":"Apt 1","city":"Los Angeles","state":"CA","zip":"90010","country":"USA","phone":"5555555555","status":"1","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":1,"shipping":1,"duty":1,"pin":0,"traceNumber":null,"cvvStatus":null,"unauthReason":null,"fee":1,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":"single","copyReason":null,"originalApproved":"100","currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":1,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":1,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
     RESPONSE
   end
 
@@ -117,7 +130,11 @@ class PayrixTest < Test::Unit::TestCase
 
   def failed_capture_response; end
 
-  def successful_refund_response; end
+  def successful_refund_response
+    <<-RESPONSE
+      {"response":{"data":[{"id":"t1_txn_6632a56685ff49459babb3a","created":"2024-05-01 16:26:14.5492","modified":"2024-05-01 16:26:16.4403","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"payment":"g157b215cd94669","fortxn":"t1_txn_66326c57442796049c22978","fromtxn":null,"batch":null,"subscription":null,"type":"5","expiration":"0125","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":"2024-05-01 16:26:16","settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"order123","description":null,"descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":"2","tax":1,"total":100,"cashback":null,"authorization":null,"approved":100,"cvv":0,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":null,"first":null,"middle":null,"last":null,"company":null,"email":null,"address1":null,"address2":null,"city":null,"state":null,"zip":null,"country":null,"phone":null,"status":"3","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":null,"shipping":null,"duty":null,"pin":0,"traceNumber":null,"cvvStatus":"notProvided","unauthReason":"customerCancelled","fee":null,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":null,"copyReason":null,"originalApproved":100,"currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":1,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":1,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
+    RESPONSE
+  end
 
   def failed_refund_response; end
 
