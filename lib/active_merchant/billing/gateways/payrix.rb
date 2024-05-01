@@ -93,13 +93,40 @@ module ActiveMerchant #:nodoc:
         add_merchant(post, options)
         add_payment(post, payment)
         add_invoice(post, money, options)
+        add_address(post, options)
+        add_adjustments(post, options)
+        add_customer_data(post, options)
         add_transaction_details(post, options)
         post
       end
 
-      def add_customer_data(post, options); end
+      def add_adjustments(post, options)
+        post[:fee] = options[:fee]
+        post[:discount] = options[:discount]
+        post[:tax] = options[:tax]
+        post[:surcharge] = options[:surcharge]
+        post[:shipping] = options[:shipping]
+        post[:duty] = options[:duty]
+      end
 
-      def add_address(post, creditcard, options); end
+      def add_customer_data(post, options)
+        post[:phone] = options[:phone]
+        post[:clientIp] = options[:clientIp]
+        post[:email] = options[:email]
+        post[:first] = options[:first]
+        post[:middle] = options[:middle]
+        post[:last] = options[:last]
+        post[:company] = options[:company]
+      end
+
+      def add_address(post, options)
+        post[:address1] = options[:address1]
+        post[:address2] = options[:address2]
+        post[:city] = options[:city]
+        post[:state] = options[:state]
+        post[:zip] = options[:zip]
+        post[:country] = options[:country]
+      end
 
       def add_merchant(post, options)
         post[:merchant] = options[:merchant_id] || @options[:merchant_id]
@@ -116,12 +143,16 @@ module ActiveMerchant #:nodoc:
       def add_invoice(post, money, options)
         post[:total] = amount(money)
         post[:currency] = (options[:currency] || currency(money))
+        post[:order] = options[:order]
       end
 
       def add_transaction_details(post, options)
         post[:type] = options[:type] || @options[:type]
         post[:origin] = options[:origin] || @options[:origin]
         post[:expiration] = options[:expiration] || @options[:expiration]
+        post[:description] = options[:description]
+        post[:fundingCurrency] = options[:fundingCurrency]
+        post[:cofType] = options[:cofType]
       end
 
       def parse(body)
@@ -138,8 +169,8 @@ module ActiveMerchant #:nodoc:
           message_from(response),
           response,
           authorization: authorization_from(response),
-          avs_result: AVSResult.new(code: response['some_avs_response_key']),
-          cvv_result: CVVResult.new(response['some_cvv_response_key']),
+          avs_result: nil,
+          cvv_result: CVVResult.new(response.try(:[], "response").try(:[], "data").first.try(:[], "cvvStatus")),
           test: test?,
           error_code: error_code_from(response)
         )

@@ -4,7 +4,7 @@ class RemotePayrixTest < Test::Unit::TestCase
   def setup
     @gateway = PayrixGateway.new(fixtures(:payrix))
 
-    @amount = 100
+    @amount = 10000
     @credit_card = credit_card('4000100011112224')
     @declined_card = credit_card('4000300011112220')
     @options = {
@@ -19,19 +19,44 @@ class RemotePayrixTest < Test::Unit::TestCase
   def test_successful_purchase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
+    assert response.test?
     assert_equal 'Request Successful', response.message
   end
 
   def test_successful_purchase_with_more_options
     options = {
-      order_id: '1',
-      ip: '127.0.0.1',
-      email: 'joe@example.com'
+      type: PayrixGateway::TXNS_TYPE[:cc_only_sale],
+      origin: PayrixGateway::TXNS_ORIGIN[:ecommerce_system],
+      expiration: '0120',
+      order: 'order_id_123',
+      clientIp: '165.50.159.143',
+      email: 'joe@example.com',
+      fee: 1,
+      address1: '1234 My Street',
+      address2: 'Apt 1',
+      city: 'Los Angeles',
+      state: 'CA',
+      zip: '90010',
+      country: 'USA',
+      phone: '5555555555',
+      company: 'Widgets Inc',
+      cofType: 'single',
+      fundingCurrency: 'USD',
+      description: "Store Purchase Description",
+      discount: 1,
+      first: "Joe",
+      middle: "M",
+      last: "Smith",
+      shipping: 1,
+      tax: 1,
+      surcharge: 1,
+      duty: 1
     }
 
     response = @gateway.purchase(@amount, @credit_card, options)
     assert_success response
-    assert_equal 'REPLACE WITH SUCCESS MESSAGE', response.message
+    assert_equal 1, response.params["response"]["data"].first["fee"]
+    assert_equal 'Request Successful', response.message
   end
 
   def test_failed_purchase

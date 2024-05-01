@@ -10,8 +10,8 @@ class PayrixTest < Test::Unit::TestCase
       order_id: '1',
       billing_address: address,
       description: 'Store Purchase',
-      type: '1',
-      origin: '2',
+      type: PayrixGateway::TXNS_TYPE[:cc_only_sale],
+      origin: PayrixGateway::TXNS_ORIGIN[:ecommerce_system],
       expiration: '0120'
     }
   end
