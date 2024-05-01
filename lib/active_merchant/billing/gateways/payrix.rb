@@ -4,7 +4,7 @@ module ActiveMerchant #:nodoc:
       self.test_url = 'https://test-api.payrix.com'
       self.live_url = 'https://api.payrix.com'
 
-      self.supported_countries = ['US']
+      self.supported_countries = ['AU', 'GB', 'NZ', 'US']
       self.default_currency = 'USD'
       self.supported_cardtypes = %i[visa master american_express discover diners_club]
 
