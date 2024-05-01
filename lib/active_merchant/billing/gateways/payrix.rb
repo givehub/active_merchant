@@ -189,6 +189,8 @@ module ActiveMerchant #:nodoc:
 
       def message_from(response)
         return "Request Successful" if success_from(response)
+
+        response.try(:[], "response").try(:[], "errors").first.try(:[], "msg")
       end
 
       def authorization_from(response)
@@ -203,7 +205,7 @@ module ActiveMerchant #:nodoc:
 
       def error_code_from(response)
         unless success_from(response)
-          response["response"]["errors"].first["errorCode"]
+          response.try(:[], "response").try(:[], "errors").first.try(:[], "errorCode")
         end
       end
     end

@@ -6,7 +6,7 @@ class RemotePayrixTest < Test::Unit::TestCase
 
     @amount = 10000
     @credit_card = credit_card('4000100011112224')
-    @declined_card = credit_card('4000300011112220')
+    @invalid_number_card = credit_card('400030001111222')
     @options = {
       billing_address: address,
       description: 'Store Purchase',
@@ -60,9 +60,9 @@ class RemotePayrixTest < Test::Unit::TestCase
   end
 
   def test_failed_purchase
-    response = @gateway.purchase(@amount, @declined_card, @options)
+    response = @gateway.purchase(@amount, @invalid_number_card, @options)
     assert_failure response
-    assert_equal 'REPLACE WITH FAILED PURCHASE MESSAGE', response.message
+    assert_equal 'Invalid credit card/debit card number', response.message
   end
 
   def test_successful_authorize_and_capture

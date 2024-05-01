@@ -22,7 +22,7 @@ class PayrixTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
 
-    assert_equal 't1_txn_6626c4364e5731144453863|1', response.authorization
+    assert_equal 't1_txn_663285d5990d230318ae771|100', response.authorization
     assert response.test?
   end
 
@@ -99,7 +99,7 @@ class PayrixTest < Test::Unit::TestCase
 
   def successful_purchase_response
     <<-RESPONSE
-      {"response":{"data":[{"payment":{"method":2,"number":"2224"},"id":"t1_txn_6626c4364e5731144453863","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","type":"1","expiration":"0120","currency":"USD","origin":"2","total":1,"swiped":0,"emv":0,"signature":0}],"details":{"requestId":1},"errors":[]}}
+      {"response":{"data":[{"payment":{"id":"g158fe267496346","method":2,"number":"2224","routing":"0","bin":"400010","payment":null,"lastChecked":null,"last4":null,"mask":null},"id":"t1_txn_663285d5990d230318ae771","created":"2024-05-01 14:11:33.6273","modified":"2024-05-01 14:11:35.1438","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"fortxn":null,"fromtxn":null,"batch":"t1_bth_66328504d42e3aa243fc6b2","subscription":null,"type":"1","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"order_id_123","description":"Store Purchase Description","descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":"2","tax":1,"total":100,"cashback":null,"authorization":"46096","approved":"100","cvv":1,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":"165.50.159.143","first":"Joe","middle":"M","last":"Smith","company":"Widgets Inc","email":"joe@example.com","address1":"1234 My Street","address2":"Apt 1","city":"Los Angeles","state":"CA","zip":"90010","country":"USA","phone":"5555555555","status":"1","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":1,"shipping":1,"duty":1,"pin":0,"traceNumber":null,"cvvStatus":null,"unauthReason":null,"fee":1,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":"single","copyReason":null,"originalApproved":"100","currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":1,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":1,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
     RESPONSE
   end
 
