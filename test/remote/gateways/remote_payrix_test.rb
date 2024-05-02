@@ -8,8 +8,9 @@ class RemotePayrixTest < Test::Unit::TestCase
     @credit_card = credit_card('4000100011112224')
     @invalid_number_card = credit_card('400030001111222')
     @options = {
+      order: generate_unique_id,
       billing_address: address,
-      description: 'Store Purchase',
+      description: 'Active Merchant Remote Test - Store Purchase',
       type: PayrixGateway::TXNS_TYPE[:cc_only_sale],
       origin: PayrixGateway::TXNS_ORIGIN[:ecommerce_system],
       expiration: '0120'
@@ -28,7 +29,7 @@ class RemotePayrixTest < Test::Unit::TestCase
       type: PayrixGateway::TXNS_TYPE[:cc_only_sale],
       origin: PayrixGateway::TXNS_ORIGIN[:ecommerce_system],
       expiration: '0120',
-      order: 'order_id_123',
+      order: generate_unique_id,
       clientIp: '165.50.159.143',
       email: 'joe@example.com',
       fee: 1,
