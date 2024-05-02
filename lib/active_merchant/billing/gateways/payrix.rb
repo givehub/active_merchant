@@ -94,7 +94,7 @@ module ActiveMerchant #:nodoc:
         transaction_id = authorization.split('|').first
         post = {}
         post[:fortxn] = transaction_id
-        post[:total] = amount(money)
+        post[:total] = money
         post[:type] = TXNS_TYPE[:cc_only_refund]
         post
       end
@@ -152,8 +152,8 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_invoice(post, money, options)
-        post[:total] = amount(money)
-        post[:currency] = (options[:currency] || currency(money))
+        post[:total] = money
+        post[:currency] = options[:currency] || default_currency
         post[:order] = options[:order]
       end
 
