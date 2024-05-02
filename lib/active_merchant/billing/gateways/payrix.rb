@@ -40,6 +40,13 @@ module ActiveMerchant #:nodoc:
         invalid_card_number: 'invalid_card_number'
       }
 
+      ADDRESS_MAX_SIZE = 500
+      STATE_MAX_SIZE = 100
+      ZIP_MAX_SIZE = 20
+      PHONE_MAX_SIZE = 15
+      DESCRIPTION_MAX_SIZE = 1000
+      ORDER_MAX_SIZE = 1000
+
       def initialize(options = {})
         requires!(options, :merchant_id, :api_key)
         super
@@ -121,7 +128,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_customer_data(post, options)
-        post[:phone] = options[:phone]
+        post[:phone] = truncate(options[:phone], PHONE_MAX_SIZE)
         post[:clientIp] = options[:clientIp]
         post[:email] = options[:email]
         post[:first] = options[:first]
@@ -131,11 +138,11 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_address(post, options)
-        post[:address1] = options[:address1]
-        post[:address2] = options[:address2]
-        post[:city] = options[:city]
-        post[:state] = options[:state]
-        post[:zip] = options[:zip]
+        post[:address1] = truncate(options[:address1], ADDRESS_MAX_SIZE)
+        post[:address2] = truncate(options[:address2], ADDRESS_MAX_SIZE)
+        post[:city] = truncate(options[:city], ADDRESS_MAX_SIZE)
+        post[:state] = truncate(options[:state], STATE_MAX_SIZE)
+        post[:zip] = truncate(options[:zip], ZIP_MAX_SIZE)
         post[:country] = options[:country]
       end
 
@@ -154,14 +161,14 @@ module ActiveMerchant #:nodoc:
       def add_invoice(post, money, options)
         post[:total] = money
         post[:currency] = options[:currency] || default_currency
-        post[:order] = options[:order]
+        post[:order] = truncate(options[:order], ORDER_MAX_SIZE)
       end
 
       def add_transaction_details(post, options)
         post[:type] = options[:type] || @options[:type]
         post[:origin] = options[:origin] || @options[:origin]
         post[:expiration] = options[:expiration] || @options[:expiration]
-        post[:description] = options[:description]
+        post[:description] = truncate(options[:description], DESCRIPTION_MAX_SIZE)
         post[:fundingCurrency] = options[:fundingCurrency]
         post[:cofType] = options[:cofType]
       end
