@@ -66,13 +66,22 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert_equal 'Invalid credit card/debit card number', response.message
   end
 
+  def test_successful_authorize
+    response = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success response
+    assert response.test?
+    assert_equal 'Request Successful', response.message
+    refute_empty response.params["response"]["data"].first["authorization"]
+  end
+
   def test_successful_authorize_and_capture
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
 
     assert capture = @gateway.capture(@amount, auth.authorization)
     assert_success capture
-    assert_equal 'REPLACE WITH SUCCESS MESSAGE', capture.message
+    assert_equal 'Request Successful', capture.message
+    refute_empty capture.params["response"]["data"].first["batch"]
   end
 
   def test_failed_authorize

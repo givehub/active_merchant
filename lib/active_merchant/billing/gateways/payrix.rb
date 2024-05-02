@@ -59,10 +59,14 @@ module ActiveMerchant #:nodoc:
       end
 
       def authorize(money, payment, options = {})
+        post = build_authorize_request(money, payment, options)
+
         commit('txns', post)
       end
 
       def capture(money, authorization, options = {})
+        post = build_capture_request(money, authorization, options)
+
         commit('txns', post)
       end
 
@@ -73,7 +77,9 @@ module ActiveMerchant #:nodoc:
       end
 
       def void(authorization, options = {})
-        commit('void', post)
+        post = build_void_request(authorization, options)
+
+        commit('txns', post)
       end
 
       def verify(credit_card, options = {})
@@ -97,19 +103,45 @@ module ActiveMerchant #:nodoc:
 
       private
 
+      def build_void_request(authorization, options)
+        transaction_id = authorization.split('|').first
+
+        post = {
+          fortxn: transaction_id,
+          type: TXNS_TYPE[:cc_only_reverse_auth]
+        }
+
+        post
+      end
+
+      def build_authorize_request(money, payment, options)
+        post = build_purchase_request(money, payment, options)
+        post[:type] = TXNS_TYPE[:cc_only_auth]
+        post
+      end
+
+      def build_capture_request(money, authorization, options)
+        transaction_id = authorization.split('|').first
+        post = {}
+        post = build_purchase_request(money, nil, options)
+        post[:type] = TXNS_TYPE[:cc_only_capture]
+        post[:fortxn] = transaction_id
+        post
+      end
+
       def build_refund_request(money, authorization, options)
         transaction_id = authorization.split('|').first
         post = {}
         post[:fortxn] = transaction_id
         post[:total] = money
-        post[:type] = TXNS_TYPE[:cc_only_refund]
+        post[:type] = options[:type] || TXNS_TYPE[:cc_only_refund]
         post
       end
 
       def build_purchase_request(money, payment, options)
         post = {}
         add_merchant(post, options)
-        add_payment(post, payment)
+        add_payment(post, payment) if payment
         add_invoice(post, money, options)
         add_address(post, options)
         add_adjustments(post, options)
