@@ -36,6 +36,15 @@ module ActiveMerchant #:nodoc:
         discover: '5'
       }
 
+      TXNS_RESPONSE_STATUS = {
+        '0': 'Pending',
+        '1': 'Approved',
+        '2': 'Failed',
+        '3': 'Captured',
+        '4': 'Settled',
+        '5': 'Returned'
+      }
+
       STANDARD_ERROR_CODE = {
         invalid_card_number: 'invalid_card_number'
       }
@@ -238,9 +247,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def message_from(response)
-        return "Request Successful" if success_from(response)
-
-        response.try(:[], "response").try(:[], "errors").first.try(:[], "msg")
+        if success_from(response)
+          response_status_code = response.try(:[], "response").try(:[], "data").first.try(:[], "status")
+          response_status_code.nil? ? 'Request Successful' : TXNS_RESPONSE_STATUS[:"#{response_status_code}"]
+        else
+          response.try(:[], "response").try(:[], "errors").first.try(:[], "msg")
+        end
       end
 
       def authorization_from(response)

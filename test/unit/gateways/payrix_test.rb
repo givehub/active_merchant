@@ -51,7 +51,7 @@ class PayrixTest < Test::Unit::TestCase
 
     assert_success response
     assert response.test?
-    assert_equal 'Request Successful', response.message
+    assert_equal 'Captured', response.message
     assert response.params['response']['data'].first['id'].present?
     assert response.params['response']['data'].first['fortxn'].present?
     assert_equal 100, response.params['response']['data'].first['total']

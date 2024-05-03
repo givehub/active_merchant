@@ -21,7 +21,7 @@ class RemotePayrixTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
     assert response.test?
-    assert_equal 'Request Successful', response.message
+    assert_equal 'Approved', response.message
   end
 
   def test_successful_purchase_with_more_options
@@ -57,7 +57,7 @@ class RemotePayrixTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, @credit_card, options)
     assert_success response
     assert_equal 1, response.params["response"]["data"].first["fee"]
-    assert_equal 'Request Successful', response.message
+    assert_equal 'Approved', response.message
   end
 
   def test_failed_purchase
@@ -70,7 +70,7 @@ class RemotePayrixTest < Test::Unit::TestCase
     response = @gateway.authorize(@amount, @credit_card, @options)
     assert_success response
     assert response.test?
-    assert_equal 'Request Successful', response.message
+    assert_equal 'Approved', response.message
     refute_empty response.params["response"]["data"].first["authorization"]
   end
 
@@ -80,7 +80,7 @@ class RemotePayrixTest < Test::Unit::TestCase
 
     assert capture = @gateway.capture(@amount, auth.authorization)
     assert_success capture
-    assert_equal 'Request Successful', capture.message
+    assert_equal 'Pending', capture.message
     refute_empty capture.params["response"]["data"].first["batch"]
   end
 
