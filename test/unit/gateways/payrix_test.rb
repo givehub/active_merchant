@@ -35,7 +35,14 @@ class PayrixTest < Test::Unit::TestCase
     assert_equal PayrixGateway::STANDARD_ERROR_CODE[:invalid_card_number], response.error_code
   end
 
-  def test_successful_authorize; end
+  def test_successful_authorize
+    @gateway.expects(:ssl_post).returns(successful_authorize_response)
+
+    response = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success response
+    assert_equal 'Approved', response.message
+    assert response.params['response']['data'].first['authorization'].present?
+  end
 
   def test_failed_authorize; end
 
@@ -122,7 +129,11 @@ class PayrixTest < Test::Unit::TestCase
     RESPONSE
   end
 
-  def successful_authorize_response; end
+  def successful_authorize_response
+    <<-RESPONSE
+      {"response":{"data":[{"payment":{"id":"g158fe267496346","method":2,"number":"2224","routing":"0","bin":"400010","payment":null,"lastChecked":null,"last4":null,"mask":null},"id":"t1_txn_663523873402da4d3cef5bc","created":"2024-05-03 13:48:55.2134","modified":"2024-05-03 13:48:56.4753","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"fortxn":null,"fromtxn":null,"batch":null,"subscription":null,"type":"2","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"fda2f5647f9fbe5b4af8d3f925518705","description":"Active Merchant Remote Test - Store Purchase","descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":"2","tax":null,"total":10000,"cashback":null,"authorization":"92706","approved":"10000","cvv":1,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":null,"first":null,"middle":null,"last":null,"company":null,"email":null,"address1":null,"address2":null,"city":null,"state":null,"zip":null,"country":null,"phone":null,"status":"1","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":null,"shipping":null,"duty":null,"pin":0,"traceNumber":null,"cvvStatus":null,"unauthReason":null,"fee":null,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":null,"copyReason":null,"originalApproved":"10000","currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":null,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":0,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
+    RESPONSE
+  end
 
   def failed_authorize_response; end
 
