@@ -70,25 +70,25 @@ module ActiveMerchant #:nodoc:
       def authorize(money, payment, options = {})
         post = build_authorize_request(money, payment, options)
 
-        commit('txns', post)
+        commit('txns', post, options)
       end
 
       def capture(money, authorization, options = {})
         post = build_capture_request(money, authorization, options)
 
-        commit('txns', post)
+        commit('txns', post, options)
       end
 
       def refund(money, authorization, options = {})
         post = build_refund_request(money, authorization, options)
 
-        commit('txns', post)
+        commit('txns', post, options)
       end
 
       def void(authorization, options = {})
         post = build_void_request(authorization, options)
 
-        commit('txns', post)
+        commit('txns', post, options)
       end
 
       def verify(credit_card, options = {})
