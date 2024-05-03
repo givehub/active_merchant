@@ -76,6 +76,17 @@ class RemotePayrixTest < Test::Unit::TestCase
     refute_empty response.params["response"]["data"].first["authorization"]
   end
 
+  def test_partial_authorized
+    @test_partially_approved_amount = 1010
+    response = @gateway.authorize(@test_partially_approved_amount, @test_credit_card, @options.merge(allowPartial: 1))
+    assert_success response
+    assert response.test?
+    assert_equal 'Approved', response.message
+    refute_empty response.params["response"]["data"].first["authorization"]
+    assert_equal "1010", response.params["response"]["data"].first["approved"]
+    assert_equal "1010", response.authorization.split("|").last
+  end
+
   def test_successful_authorize_and_capture
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
@@ -100,10 +111,16 @@ class RemotePayrixTest < Test::Unit::TestCase
 
     assert capture = @gateway.capture(@amount - 1, auth.authorization)
     assert_success capture
+    assert_equal 'Pending', capture.message
+    refute_empty capture.params["response"]["data"].first["batch"]
   end
 
   def test_failed_capture
-    response = @gateway.capture(@amount, '')
+    @test_voided_transaction_amount = 3363
+    auth = @gateway.authorize(@test_voided_transaction_amount = 3363, @test_credit_card, @options)
+    assert_success auth
+
+    response = @gateway.capture(@test_voided_transaction_amount, auth.authorization)
     assert_failure response
     assert_equal 'REPLACE WITH FAILED CAPTURE MESSAGE', response.message
   end

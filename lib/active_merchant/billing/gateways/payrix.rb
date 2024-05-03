@@ -212,6 +212,7 @@ module ActiveMerchant #:nodoc:
         post[:description] = truncate(options[:description], DESCRIPTION_MAX_SIZE)
         post[:fundingCurrency] = options[:fundingCurrency]
         post[:cofType] = options[:cofType]
+        post[:allowPartial] = options[:allowPartial]
       end
 
       def parse(body)
@@ -257,12 +258,12 @@ module ActiveMerchant #:nodoc:
 
       def authorization_from(response)
         _id = response.try(:[], "response").try(:[], "data").first.try(:[], "id")
-        _total = response.try(:[], "response").try(:[], "data").first.try(:[], "total")
+        _authorized_amount = response.try(:[], "response").try(:[], "data").first.try(:[], "approved")
 
-        return '|' if _id.blank? && _total.blank?
-        return "#{_id}|" if _total.blank?
+        return '|' if _id.blank? && _authorized_amount.blank?
+        return "#{_id}|" if _authorized_amount.blank?
 
-        [_id, _total].join('|')
+        [_id, _authorized_amount].join('|')
       end
 
       def error_code_from(response)
