@@ -44,7 +44,14 @@ class PayrixTest < Test::Unit::TestCase
     assert response.params['response']['data'].first['authorization'].present?
   end
 
-  def test_failed_authorize; end
+  def test_failed_authorize
+    @gateway.expects(:ssl_post).returns(failed_authorize_response)
+
+    response = @gateway.authorize(@amount, @credit_card, @options)
+    assert_failure response
+    assert_equal 'Transaction declined: Exceeds Approval Amount Limit', response.message
+    assert_equal 'Failed', PayrixGateway::TXNS_RESPONSE_STATUS[:"#{response.params['response']['data'].first['status']}"]
+  end
 
   def test_successful_capture; end
 
@@ -135,7 +142,11 @@ class PayrixTest < Test::Unit::TestCase
     RESPONSE
   end
 
-  def failed_authorize_response; end
+  def failed_authorize_response
+    <<-RESPONSE
+      {"response":{"data":[{"payment":{"id":"g157968b6df1534","method":2,"number":"4242","routing":"0","bin":"424242","payment":null,"lastChecked":null,"last4":null,"mask":null},"id":"t1_txn_6635541fe89ba95c25c5338","created":"2024-05-03 17:16:15.9531","modified":"2024-05-03 17:16:16.7347","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"fortxn":null,"fromtxn":null,"batch":null,"subscription":null,"type":"2","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"061ac90151f1e28210267df76aea88bb","description":"Active Merchant Remote Test - Store Purchase","descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":"2","tax":null,"total":50001,"cashback":null,"authorization":null,"approved":null,"cvv":1,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":null,"first":null,"middle":null,"last":null,"company":null,"email":null,"address1":null,"address2":null,"city":null,"state":null,"zip":null,"country":null,"phone":null,"status":2,"refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":null,"shipping":null,"duty":null,"pin":0,"traceNumber":null,"cvvStatus":null,"unauthReason":null,"fee":null,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":null,"copyReason":null,"originalApproved":null,"currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":null,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":0,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[{"field":null,"code":15,"severity":2,"msg":"Transaction declined: Exceeds Approval Amount Limit","errorCode":"invalid_amount"}]}}
+    RESPONSE
+  end
 
   def successful_capture_response; end
 

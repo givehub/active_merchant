@@ -7,6 +7,8 @@ class RemotePayrixTest < Test::Unit::TestCase
     @amount = 10000
     @credit_card = credit_card('4000100011112224')
     @invalid_number_card = credit_card('400030001111222')
+    @test_credit_card = credit_card('4242424242424242')
+
     @options = {
       order: generate_unique_id,
       billing_address: address,
@@ -85,9 +87,11 @@ class RemotePayrixTest < Test::Unit::TestCase
   end
 
   def test_failed_authorize
-    response = @gateway.authorize(@amount, @declined_card, @options)
+    @test_exceeds_approval_amount_limit_amount = 50001
+    response = @gateway.authorize(@test_exceeds_approval_amount_limit_amount, @test_credit_card, @options)
     assert_failure response
-    assert_equal 'REPLACE WITH FAILED AUTHORIZE MESSAGE', response.message
+    assert_nil response.params['response']['data'].first['authorization']
+    assert_equal 'Transaction declined: Exceeds Approval Amount Limit', response.message
   end
 
   def test_partial_capture
