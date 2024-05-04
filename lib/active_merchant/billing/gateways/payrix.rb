@@ -45,6 +45,8 @@ module ActiveMerchant #:nodoc:
         '5': 'Returned'
       }
 
+      TXNS_SUCCESS_STATUSES = ['Pending', 'Approved', 'Captured', 'Settled', 'Returned']
+
       STANDARD_ERROR_CODE = {
         invalid_card_number: 'invalid_card_number'
       }
@@ -99,15 +101,15 @@ module ActiveMerchant #:nodoc:
       end
 
       def supports_scrubbing?
-        false
+        true
       end
 
       def scrub(transcript)
-        #transcript.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').
-        #  gsub(/(\\?"number\\?":\\?")\d+/, '\1[FILTERED]').
-        #  gsub(/(\\?"cvv\\?":\\?")\d+/, '\1[FILTERED]').
-        #  gsub(/(\\?"method\\?":\\?")\d+/, '\1[FILTERED]').
-        #  gsub(/(\\?"Apikey\\?":\\?")\d+/, '\1[FILTERED]')
+        transcript.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?').
+          gsub(/(\\?"number\\?":\\?")\d+/, '\1[FILTERED]').
+          gsub(/(\\?"cvv\\?":\\?")\d+/, '\1[FILTERED]').
+          gsub(/(\\?"method\\?":\\?")\d+/, '\1[FILTERED]').
+          gsub(/(\\?"Apikey\\?":\\?")\d+/, '\1[FILTERED]')
       end
 
       private
@@ -183,7 +185,7 @@ module ActiveMerchant #:nodoc:
         post[:address2] = truncate(options[:address2], ADDRESS_MAX_SIZE)
         post[:city] = truncate(options[:city], ADDRESS_MAX_SIZE)
         post[:state] = truncate(options[:state], STATE_MAX_SIZE)
-        post[:zip] = truncate(options[:zip], ZIP_MAX_SIZE)
+        post[:zip] = truncate(scrub_zip(options[:zip]), ZIP_MAX_SIZE)
         post[:country] = options[:country]
       end
 
@@ -270,6 +272,15 @@ module ActiveMerchant #:nodoc:
         unless success_from(response)
           response.try(:[], "response").try(:[], "errors").first.try(:[], "errorCode")
         end
+      end
+
+      def scrub_zip(zip)
+        return nil unless zip.present?
+        return nil if
+          zip.gsub(/[^a-z0-9]/i, '').length > 9 ||
+            zip =~ /[^a-z0-9\- ]/i
+
+        zip
       end
     end
   end
