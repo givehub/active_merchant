@@ -23,7 +23,7 @@ class PayrixTest < Test::Unit::TestCase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
 
-    assert_equal 't1_txn_66326c57442796049c22978|100', response.authorization
+    assert_equal 't1_txn_66326c57442796049c22978', response.authorization
     assert response.test?
   end
 

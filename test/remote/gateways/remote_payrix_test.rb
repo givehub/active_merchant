@@ -84,7 +84,6 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert_equal 'Approved', response.message
     refute_empty response.params["response"]["data"].first["authorization"]
     assert_equal "1010", response.params["response"]["data"].first["approved"]
-    assert_equal "1010", response.authorization.split("|").last
   end
 
   def test_successful_authorize_and_capture
@@ -154,7 +153,7 @@ class RemotePayrixTest < Test::Unit::TestCase
 
     assert void = @gateway.void(auth.authorization)
     assert_success void
-    assert_equal 'REPLACE WITH SUCCESSFUL VOID MESSAGE', void.message
+    assert_equal 'Approved', void.message
   end
 
   def test_failed_void

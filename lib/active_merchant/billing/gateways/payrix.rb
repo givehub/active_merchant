@@ -28,6 +28,11 @@ module ActiveMerchant #:nodoc:
         recurring: '7'
       }
 
+      TXNS_ALLOW_PARTIAL = {
+        partial_amount_authorizations_not_allowed: '0',
+        partial_amount_authorizations_allowed: '1'
+      }
+
       CREDIT_CARD_CODES = {
         american_express: '1',
         visa: '2',
@@ -114,14 +119,11 @@ module ActiveMerchant #:nodoc:
 
       private
 
-      def build_void_request(authorization, options)
-        transaction_id = authorization.split('|').first
-
+      def build_void_request(authorized_transaction_id, options)
         post = {
-          fortxn: transaction_id,
+          fortxn: authorized_transaction_id,
           type: TXNS_TYPE[:cc_only_reverse_auth]
         }
-
         post
       end
 
@@ -131,19 +133,17 @@ module ActiveMerchant #:nodoc:
         post
       end
 
-      def build_capture_request(money, authorization, options)
-        transaction_id = authorization.split('|').first
+      def build_capture_request(money, authorized_transaction_id, options)
         post = {}
         post = build_purchase_request(money, nil, options)
         post[:type] = TXNS_TYPE[:cc_only_capture]
-        post[:fortxn] = transaction_id
+        post[:fortxn] = authorized_transaction_id
         post
       end
 
-      def build_refund_request(money, authorization, options)
-        transaction_id = authorization.split('|').first
+      def build_refund_request(money, authorized_transaction_id, options)
         post = {}
-        post[:fortxn] = transaction_id
+        post[:fortxn] = authorized_transaction_id
         post[:total] = money
         post[:type] = options[:type] || TXNS_TYPE[:cc_only_refund]
         post
@@ -214,7 +214,7 @@ module ActiveMerchant #:nodoc:
         post[:description] = truncate(options[:description], DESCRIPTION_MAX_SIZE)
         post[:fundingCurrency] = options[:fundingCurrency]
         post[:cofType] = options[:cofType]
-        post[:allowPartial] = options[:allowPartial]
+        post[:allowPartial] = options[:allowPartial] || TXNS_ALLOW_PARTIAL[:partial_amount_authorizations_not_allowed]
       end
 
       def parse(body)
@@ -259,13 +259,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def authorization_from(response)
-        _id = response.try(:[], "response").try(:[], "data").first.try(:[], "id")
-        _authorized_amount = response.try(:[], "response").try(:[], "data").first.try(:[], "approved")
-
-        return '|' if _id.blank? && _authorized_amount.blank?
-        return "#{_id}|" if _authorized_amount.blank?
-
-        [_id, _authorized_amount].join('|')
+        response.try(:[], "response").try(:[], "data").first.try(:[], "id")
       end
 
       def error_code_from(response)
