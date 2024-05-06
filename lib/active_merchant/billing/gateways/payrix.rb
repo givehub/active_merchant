@@ -231,8 +231,6 @@ module ActiveMerchant #:nodoc:
           message_from(response),
           response,
           authorization: authorization_from(response),
-          avs_result: nil,
-          cvv_result: CVVResult.new(response.try(:[], "response").try(:[], "data").first.try(:[], "cvvStatus")),
           test: test?,
           error_code: error_code_from(response)
         )
