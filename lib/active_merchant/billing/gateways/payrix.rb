@@ -16,7 +16,8 @@ module ActiveMerchant #:nodoc:
         cc_only_auth: '2',
         cc_only_capture: '3',
         cc_only_reverse_auth: '4',
-        cc_only_refund: '5'
+        cc_only_refund: '5',
+        echeck_only_refund: '8'
       }
 
       TXNS_ORIGIN = {
@@ -120,10 +121,9 @@ module ActiveMerchant #:nodoc:
       private
 
       def build_void_request(authorized_transaction_id, options)
-        post = {
-          fortxn: authorized_transaction_id,
-          type: TXNS_TYPE[:cc_only_reverse_auth]
-        }
+        post = {}
+        post[:fortxn] = authorized_transaction_id
+        post[:type] = TXNS_TYPE[:cc_only_reverse_auth]
         post
       end
 
@@ -144,8 +144,14 @@ module ActiveMerchant #:nodoc:
       def build_refund_request(money, authorized_transaction_id, options)
         post = {}
         post[:fortxn] = authorized_transaction_id
-        post[:total] = money
-        post[:type] = options[:type] || TXNS_TYPE[:cc_only_refund]
+        post[:total] = money if money
+        post[:type] = TXNS_TYPE[:cc_only_refund]
+
+        if options[:type] == TXNS_TYPE[:echeck_only_refund]
+          post[:type] = TXNS_TYPE[:echeck_only_refund]
+          post[:first] = options[:first]
+        end
+
         post
       end
 
