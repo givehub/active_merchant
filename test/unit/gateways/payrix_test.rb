@@ -65,10 +65,27 @@ class PayrixTest < Test::Unit::TestCase
 
     assert_success response
     assert response.test?
-    assert_equal 'Captured', response.message
+    assert_equal PayrixGateway::TXNS_RESPONSE_STATUS[:'3'], response.message
     assert response.params['response']['data'].first['id'].present?
     assert response.params['response']['data'].first['fortxn'].present?
     assert_equal 100, response.params['response']['data'].first['total']
+    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], response.params['response']['data'].first['unauthReason']
+  end
+
+  def test_partial_refund
+    @gateway.expects(:ssl_post).returns(successful_purchase_response)
+    purchase = @gateway.purchase(@amount, @credit_card, @options)
+    @gateway.expects(:ssl_post).returns(successful_partial_refund_response)
+    response = @gateway.refund(@refund_amount, purchase.authorization, @options)
+
+    assert_success response
+    assert response.test?
+    assert response.params['response']['data'].first['id'].present?
+    assert response.params['response']['data'].first['fortxn'].present?
+    assert_equal PayrixGateway::TXNS_RESPONSE_STATUS[:'1'], response.message
+    assert_equal @refund_amount, response.params["response"]["data"].first["approved"]
+    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], response.params["response"]["data"].first["unauthReason"]
+    refute_empty response.params["response"]["data"].first["id"]
   end
 
   def test_failed_refund; end
@@ -155,6 +172,12 @@ class PayrixTest < Test::Unit::TestCase
   def successful_refund_response
     <<-RESPONSE
       {"response":{"data":[{"id":"t1_txn_6632a56685ff49459babb3a","created":"2024-05-01 16:26:14.5492","modified":"2024-05-01 16:26:16.4403","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"payment":"g157b215cd94669","fortxn":"t1_txn_66326c57442796049c22978","fromtxn":null,"batch":null,"subscription":null,"type":"5","expiration":"0125","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":"2024-05-01 16:26:16","settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"order123","description":null,"descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":"2","tax":1,"total":100,"cashback":null,"authorization":null,"approved":100,"cvv":0,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":null,"first":null,"middle":null,"last":null,"company":null,"email":null,"address1":null,"address2":null,"city":null,"state":null,"zip":null,"country":null,"phone":null,"status":"3","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":null,"shipping":null,"duty":null,"pin":0,"traceNumber":null,"cvvStatus":"notProvided","unauthReason":"customerCancelled","fee":null,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":null,"copyReason":null,"originalApproved":100,"currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":1,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":1,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
+    RESPONSE
+  end
+
+  def successful_partial_refund_response
+    <<-RESPONSE
+      {"response":{"data":[{"id":"t1_txn_66395fc6a8726f6803d6dfc","created":"2024-05-06 18:55:02.6905","modified":"2024-05-06 18:55:03.5942","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"payment":"g157b215cd94669","fortxn":"t1_txn_66326c57442796049c22978","fromtxn":null,"batch":"t1_bth_66395908c08f3bfdd8ed5cf","subscription":null,"type":"5","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"","description":null,"descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":2,"tax":null,"total":1,"cashback":null,"authorization":null,"approved":1,"cvv":0,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":null,"first":null,"middle":null,"last":null,"company":null,"email":null,"address1":null,"address2":null,"city":null,"state":null,"zip":null,"country":null,"phone":null,"status":"1","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":null,"shipping":null,"duty":null,"pin":0,"traceNumber":null,"cvvStatus":"notProvided","unauthReason":"customerCancelled","fee":null,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":null,"copyReason":null,"originalApproved":1,"currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":null,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":2,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
     RESPONSE
   end
 

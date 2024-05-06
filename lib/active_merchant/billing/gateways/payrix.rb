@@ -42,6 +42,16 @@ module ActiveMerchant #:nodoc:
         discover: '5'
       }
 
+      TXNS_UNAUTH_REASONS = {
+        incomplete: 'incomplete',
+        timeout: 'timeout',
+        clerk_cancelled: 'clerkCancelled',
+        customer_cancelled: 'customerCancelled',
+        misdispense: 'misdispense',
+        hardware_failure: 'hardwareFailure',
+        suspected_fraud: 'suspectedFraud'
+      }
+
       TXNS_RESPONSE_STATUS = {
         '0': 'Pending',
         '1': 'Approved',

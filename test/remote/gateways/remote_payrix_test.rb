@@ -124,23 +124,6 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert_equal 'REPLACE WITH FAILED CAPTURE MESSAGE', response.message
   end
 
-  def test_successful_refund
-    purchase = @gateway.purchase(@amount, @credit_card, @options)
-    assert_success purchase
-
-    assert refund = @gateway.refund(@amount, purchase.authorization)
-    assert_success refund
-    assert_equal 'REPLACE WITH SUCCESSFUL REFUND MESSAGE', refund.message
-  end
-
-  def test_partial_refund
-    purchase = @gateway.purchase(@amount, @credit_card, @options)
-    assert_success purchase
-
-    assert refund = @gateway.refund(@amount - 1, purchase.authorization)
-    assert_success refund
-  end
-
   def test_failed_refund
     response = @gateway.refund(@amount, '')
     assert_failure response
