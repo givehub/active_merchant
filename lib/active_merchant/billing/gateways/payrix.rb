@@ -173,7 +173,7 @@ module ActiveMerchant #:nodoc:
       def add_customer_data(post, options)
         post[:phone] = truncate(options[:phone], PHONE_MAX_SIZE)
         post[:clientIp] = options[:clientIp]
-        post[:email] = options[:email]
+        post[:email] = scrub_email(options[:email])
         post[:first] = options[:first]
         post[:middle] = options[:middle]
         post[:last] = options[:last]
@@ -266,6 +266,15 @@ module ActiveMerchant #:nodoc:
         unless success_from(response)
           response.try(:[], "response").try(:[], "errors").first.try(:[], "errorCode")
         end
+      end
+
+      def scrub_email(email)
+        return nil unless email.present?
+        return nil if
+          email !~ /^.+@[^\.]+(\.[^\.]+)+[a-z]$/i ||
+            email =~ /\.(con|met)$/i
+
+        email
       end
 
       def scrub_zip(zip)
