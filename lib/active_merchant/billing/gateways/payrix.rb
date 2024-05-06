@@ -186,7 +186,7 @@ module ActiveMerchant #:nodoc:
         post[:city] = truncate(options[:city], ADDRESS_MAX_SIZE)
         post[:state] = truncate(options[:state], STATE_MAX_SIZE)
         post[:zip] = truncate(scrub_zip(options[:zip]), ZIP_MAX_SIZE)
-        post[:country] = options[:country]
+        post[:country] = country_code(options[:country])
       end
 
       def add_merchant(post, options)
@@ -282,6 +282,14 @@ module ActiveMerchant #:nodoc:
             zip =~ /[^a-z0-9\- ]/i
 
         zip
+      end
+
+      def country_code(country)
+        if country
+          country = ActiveMerchant::Country.find(country)
+          country.code(:alpha3).value
+        end
+      rescue InvalidCountryCodeError
       end
     end
   end
