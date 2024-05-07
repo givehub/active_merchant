@@ -154,7 +154,7 @@ class PayrixTest < Test::Unit::TestCase
 
   def post_scrubbed
     <<-PRE
-    <- "POST /txns HTTP/1.1\r\nContent-Type: application/json\r\nApikey: 60fd52de55d3dede456116800ef6e293\r\nConnection: close\r\nAccept-Encoding: gzip;q=1.0,deflate;q=0.6,identity;q=0.3\r\nAccept: */*\r\nUser-Agent: Ruby\r\nHost: test-api.payrix.com\r\nContent-Length: 186\r\n\r\n"
+    <- "POST /txns HTTP/1.1\r\nContent-Type: application/json\r\nApikey: [FILTERED]\r\nConnection: close\r\nAccept-Encoding: gzip;q=1.0,deflate;q=0.6,identity;q=0.3\r\nAccept: */*\r\nUser-Agent: Ruby\r\nHost: test-api.payrix.com\r\nContent-Length: 186\r\n\r\n"
     <- "{\"merchant\":\"t1_mer_661041feb6b9c04fb7a9ee5\",\"payment\":{\"method\":\"[FILTERED]\",\"number\":\"[FILTERED]\",\"cvv\":\"[FILTERED]\"},\"total\":\"1.00\",\"currency\":\"USD\",\"type\":\"1\",\"origin\":\"2\",\"expiration\":\"0120\"}\"
     -> "HTTP/1.1 200 OK\r\n"
     -> "Date: Mon, 22 Apr 2024 16:15:53 GMT\r\n"

@@ -141,7 +141,10 @@ class RemotePayrixTest < Test::Unit::TestCase
   end
 
   def test_failed_void
-    response = @gateway.void('')
+    @test_voided_transaction_amount = 3362
+    purchase = @gateway.purchase(@test_voided_transaction_amount, @test_credit_card, @options)
+
+    response = @gateway.void(purchase.authorization)
     assert_failure response
     assert_equal 'REPLACE WITH FAILED VOID MESSAGE', response.message
   end
@@ -183,6 +186,6 @@ class RemotePayrixTest < Test::Unit::TestCase
 
     assert_scrubbed(@credit_card.number, transcript)
     assert_scrubbed(@credit_card.verification_value, transcript)
-    assert_scrubbed(@gateway.options[:password], transcript)
+    assert_scrubbed(@gateway.options[:api_key], transcript)
   end
 end

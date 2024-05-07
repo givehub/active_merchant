@@ -125,7 +125,7 @@ module ActiveMerchant #:nodoc:
           gsub(/(\\?"number\\?":\\?")\d+/, '\1[FILTERED]').
           gsub(/(\\?"cvv\\?":\\?")\d+/, '\1[FILTERED]').
           gsub(/(\\?"method\\?":\\?")\d+/, '\1[FILTERED]').
-          gsub(/(\\?"Apikey\\?":\\?")\d+/, '\1[FILTERED]')
+          gsub(/(Apikey:)\s\w+/, '\1 [FILTERED]')
       end
 
       private
