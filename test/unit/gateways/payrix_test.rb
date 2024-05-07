@@ -90,7 +90,20 @@ class PayrixTest < Test::Unit::TestCase
 
   def test_failed_refund; end
 
-  def test_successful_void; end
+  def test_successful_void
+    @gateway.expects(:ssl_post).returns(successful_purchase_response)
+    purchase = @gateway.purchase(@amount, @credit_card, @options)
+    @gateway.expects(:ssl_post).returns(successful_void_response)
+    response = @gateway.void(purchase.authorization, @options)
+
+    assert_success response
+    assert response.test?
+    assert response.params['response']['data'].first['id'].present?
+    assert response.params['response']['data'].first['fortxn'].present?
+    assert_equal PayrixGateway::TXNS_RESPONSE_STATUS[:'1'], response.message
+    assert_equal @amount, response.params["response"]["data"].first["approved"]
+    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], response.params["response"]["data"].first["unauthReason"]
+  end
 
   def test_failed_void; end
 
@@ -183,7 +196,11 @@ class PayrixTest < Test::Unit::TestCase
 
   def failed_refund_response; end
 
-  def successful_void_response; end
+  def successful_void_response
+    <<-RESPONSE
+      {"response":{"data":[{"id":"t1_txn_663a925c1ff80053d1f015a","created":"2024-05-07 16:43:08.1315","modified":"2024-05-07 16:43:08.509","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"payment":"g158fe267496346","fortxn":"t1_txn_663a92593be9ca96cc6ecdc","fromtxn":null,"batch":null,"subscription":null,"type":"4","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"0ed486a26ac21227064d2b6716187ccb","description":null,"descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":null,"origin":2,"tax":null,"total":10000,"cashback":null,"authorization":null,"approved":100,"cvv":0,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":null,"first":null,"middle":null,"last":null,"company":null,"email":null,"address1":null,"address2":null,"city":null,"state":null,"zip":null,"country":null,"phone":null,"status":"1","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":null,"shipping":null,"duty":null,"pin":0,"traceNumber":null,"cvvStatus":"notProvided","unauthReason":"customerCancelled","fee":null,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":null,"copyReason":null,"originalApproved":10000,"currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":null,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":0,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
+    RESPONSE
+  end
 
   def failed_void_response; end
 end

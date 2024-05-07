@@ -137,6 +137,7 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert void = @gateway.void(auth.authorization)
     assert_success void
     assert_equal 'Approved', void.message
+    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], void.params["response"]["data"].first["unauthReason"]
   end
 
   def test_failed_void
