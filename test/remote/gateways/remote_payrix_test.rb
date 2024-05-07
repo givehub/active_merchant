@@ -158,11 +158,11 @@ class RemotePayrixTest < Test::Unit::TestCase
   end
 
   def test_invalid_login
-    gateway = PayrixGateway.new(login: '', password: '')
+    gateway = PayrixGateway.new(merchant_id: 'invalid', api_key: 'invalid')
 
     response = gateway.purchase(@amount, @credit_card, @options)
     assert_failure response
-    assert_match %r{REPLACE WITH FAILED LOGIN MESSAGE}, response.message
+    assert_match %r{Unauthorized}, response.message
   end
 
   def test_dump_transcript

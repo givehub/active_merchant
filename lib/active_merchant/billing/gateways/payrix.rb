@@ -250,6 +250,10 @@ module ActiveMerchant #:nodoc:
           test: test?,
           error_code: error_code_from(response)
         )
+      rescue ActiveMerchant::ResponseError => e
+        response = e.response.body.present? ? parse(e.response.body) : { "response" => { "data" => [], "errors" => [{ "msg" => e.response.msg }] } }
+        message = e.response.msg
+        Response.new(false, message, response, test: test?)
       end
 
       def auth_headers(options)
