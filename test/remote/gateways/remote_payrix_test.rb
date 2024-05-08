@@ -125,9 +125,14 @@ class RemotePayrixTest < Test::Unit::TestCase
   end
 
   def test_failed_refund
-    response = @gateway.refund(@amount, '')
-    assert_failure response
-    assert_equal 'REPLACE WITH FAILED REFUND MESSAGE', response.message
+    purchase_response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_success purchase_response
+    assert purchase_response.test?
+    assert_equal 'Approved', purchase_response.message
+
+    refund_response = @gateway.refund(nil, purchase_response.authorization)
+    assert_failure refund_response
+    assert_equal 'Invalid refund transaction', refund_response.message
   end
 
   def test_successful_void

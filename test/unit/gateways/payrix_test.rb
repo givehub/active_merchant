@@ -98,7 +98,16 @@ class PayrixTest < Test::Unit::TestCase
     refute_empty response.params["response"]["data"].first["id"]
   end
 
-  def test_failed_refund; end
+  def test_failed_refund
+    @gateway.expects(:ssl_post).returns(failed_refund_response)
+
+    @any_approved_transaction_id = 't1_txn_66326c57442796049c22978'
+    refund_response = @gateway.refund(nil, @any_approved_transaction_id)
+
+    assert_failure refund_response
+    assert_equal 'Invalid refund transaction', refund_response.message
+    assert_equal 'invalid_refund', refund_response.error_code
+  end
 
   def test_successful_void
     @gateway.expects(:ssl_post).returns(successful_purchase_response)
@@ -227,7 +236,11 @@ class PayrixTest < Test::Unit::TestCase
     RESPONSE
   end
 
-  def failed_refund_response; end
+  def failed_refund_response
+    <<-RESPONSE
+      {"response":{"data":[],"details":{"requestId":1},"errors":[{"field":null,"code":15,"severity":2,"msg":"Invalid refund transaction","errorCode":"invalid_refund"}]}}
+    RESPONSE
+  end
 
   def successful_void_response
     <<-RESPONSE
