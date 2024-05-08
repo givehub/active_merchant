@@ -65,7 +65,15 @@ class PayrixTest < Test::Unit::TestCase
     refute_empty capture.params["response"]["data"].first["batch"]
   end
 
-  def test_failed_capture; end
+  def test_failed_capture
+    @gateway.expects(:ssl_post).returns(failed_capture_response)
+    @any_voided_transaction_id = 't1_txn_66326c57442796049c22978'
+    failed_capture_response = @gateway.capture(@amount, @any_voided_transaction_id)
+
+    assert_failure failed_capture_response
+    assert_equal 'Invalid capture transaction', failed_capture_response.message
+    assert_equal 'invalid_capture', failed_capture_response.error_code
+  end
 
   def test_successful_refund
     @gateway.expects(:ssl_post).returns(successful_purchase_response)
@@ -222,7 +230,11 @@ class PayrixTest < Test::Unit::TestCase
     RESPONSE
   end
 
-  def failed_capture_response; end
+  def failed_capture_response
+    <<-RESPONSE
+      {"response":{"data":[],"details":{"requestId":1},"errors":[{"field":null,"code":15,"severity":2,"msg":"Invalid capture transaction","errorCode":"invalid_capture"}]}}
+    RESPONSE
+  end
 
   def successful_refund_response
     <<-RESPONSE

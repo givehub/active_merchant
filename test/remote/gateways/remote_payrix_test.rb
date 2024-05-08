@@ -115,13 +115,14 @@ class RemotePayrixTest < Test::Unit::TestCase
   end
 
   def test_failed_capture
-    @test_voided_transaction_amount = 3363
-    auth = @gateway.authorize(@test_voided_transaction_amount = 3363, @test_credit_card, @options)
+    auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
+    assert void = @gateway.void(auth.authorization)
 
-    response = @gateway.capture(@test_voided_transaction_amount, auth.authorization)
-    assert_failure response
-    assert_equal 'REPLACE WITH FAILED CAPTURE MESSAGE', response.message
+    failed_capture_response = @gateway.capture(10000, auth.authorization)
+    assert_failure failed_capture_response
+    assert_equal 'Invalid capture transaction', failed_capture_response.message
+    assert_equal 'invalid_capture', failed_capture_response.error_code
   end
 
   def test_failed_refund

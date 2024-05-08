@@ -66,7 +66,8 @@ module ActiveMerchant #:nodoc:
       STANDARD_ERROR_CODE = {
         invalid_card_number: 'invalid_card_number',
         invalid_refund: 'invalid_refund',
-        invalid_reverse_auth: 'invalid_reverse_auth'
+        invalid_reverse_auth: 'invalid_reverse_auth',
+        invalid_capture: 'invalid_capture'
       }
 
       ADDRESS_MAX_SIZE = 500
