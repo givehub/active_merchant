@@ -149,13 +149,14 @@ class RemotePayrixTest < Test::Unit::TestCase
   def test_successful_verify
     response = @gateway.verify(@credit_card, @options)
     assert_success response
-    assert_match %r{REPLACE WITH SUCCESS MESSAGE}, response.message
+    assert_match %r{Approved}, response.message
   end
 
   def test_failed_verify
-    response = @gateway.verify(@declined_card, @options)
+    response = @gateway.verify(@invalid_number_card, @options)
     assert_failure response
-    assert_match %r{REPLACE WITH FAILED PURCHASE MESSAGE}, response.message
+    assert_match %r{Invalid credit card/debit card number}, response.message
+    assert_match 'invalid_card_number', response.error_code
   end
 
   def test_invalid_login

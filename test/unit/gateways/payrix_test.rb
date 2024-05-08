@@ -143,11 +143,30 @@ class PayrixTest < Test::Unit::TestCase
     assert_equal 'invalid_reverse_auth', failed_void_response.error_code
   end
 
-  def test_successful_verify; end
+  def test_successful_verify
+    @gateway.expects(:ssl_post).twice.returns(successful_purchase_response)
 
-  def test_successful_verify_with_failed_void; end
+    response = @gateway.verify(@credit_card, @options)
+    assert_success response
+    assert_match %r{Approved}, response.message
+  end
 
-  def test_failed_verify; end
+  def test_successful_verify_with_failed_void
+    @gateway.expects(:ssl_post).returns(failed_void_response)
+
+    response = @gateway.verify(@credit_card, @options)
+    assert_failure response
+    assert_match %r{Invalid unauth transaction}, response.message
+  end
+
+  def test_failed_verify
+    @gateway.expects(:ssl_post).returns(failed_purchase_response)
+
+    verify_response = @gateway.verify(@credit_card, @options)
+    assert_failure verify_response
+    assert_equal 'Invalid credit card/debit card number', verify_response.message
+    assert_equal 'invalid_card_number', verify_response.error_code
+  end
 
   def test_scrub
     assert @gateway.supports_scrubbing?
