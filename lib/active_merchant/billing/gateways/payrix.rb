@@ -64,7 +64,8 @@ module ActiveMerchant #:nodoc:
       TXNS_SUCCESS_STATUSES = ['Pending', 'Approved', 'Captured', 'Settled', 'Returned']
 
       STANDARD_ERROR_CODE = {
-        invalid_card_number: 'invalid_card_number'
+        invalid_card_number: 'invalid_card_number',
+        invalid_reverse_auth: 'invalid_reverse_auth'
       }
 
       ADDRESS_MAX_SIZE = 500

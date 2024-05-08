@@ -140,15 +140,6 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], void.params["response"]["data"].first["unauthReason"]
   end
 
-  def test_failed_void
-    @test_voided_transaction_amount = 3362
-    purchase = @gateway.purchase(@test_voided_transaction_amount, @test_credit_card, @options)
-
-    response = @gateway.void(purchase.authorization)
-    assert_failure response
-    assert_equal 'REPLACE WITH FAILED VOID MESSAGE', response.message
-  end
-
   def test_successful_verify
     response = @gateway.verify(@credit_card, @options)
     assert_success response

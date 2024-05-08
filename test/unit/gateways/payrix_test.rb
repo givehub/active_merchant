@@ -115,7 +115,16 @@ class PayrixTest < Test::Unit::TestCase
     assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], response.params["response"]["data"].first["unauthReason"]
   end
 
-  def test_failed_void; end
+  def test_failed_void
+    @gateway.expects(:ssl_post).returns(failed_void_response)
+    @any_captured_transaction_id = 't1_txn_66326c57442796049c22978'
+
+    failed_void_response = @gateway.void(@any_captured_transaction_id)
+
+    assert_failure failed_void_response
+    assert_equal 'Invalid unauth transaction', failed_void_response.message
+    assert_equal 'invalid_reverse_auth', failed_void_response.error_code
+  end
 
   def test_successful_verify; end
 
@@ -226,5 +235,9 @@ class PayrixTest < Test::Unit::TestCase
     RESPONSE
   end
 
-  def failed_void_response; end
+  def failed_void_response
+    <<-RESPONSE
+      {"response":{"data":[],"details":{"requestId":1},"errors":[{"field":null,"code":15,"severity":2,"msg":"Invalid unauth transaction","errorCode":"invalid_reverse_auth"}]}}
+    RESPONSE
+  end
 end
