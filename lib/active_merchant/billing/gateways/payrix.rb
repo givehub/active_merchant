@@ -218,6 +218,7 @@ module ActiveMerchant #:nodoc:
           number: payment.number,
           cvv: payment.verification_value
         }
+        post[:expiration] = expiration_date(payment)
       end
 
       def add_invoice(post, money, options)
@@ -227,9 +228,8 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_transaction_details(post, options)
-        post[:type] = options[:type] || @options[:type]
-        post[:origin] = options[:origin] || @options[:origin]
-        post[:expiration] = options[:expiration] || @options[:expiration]
+        post[:type] = TXNS_TYPE[:cc_only_sale]
+        post[:origin] = TXNS_ORIGIN[:ecommerce_system]
         post[:description] = truncate(options[:description], DESCRIPTION_MAX_SIZE)
         post[:fundingCurrency] = options[:fundingCurrency]
         post[:cofType] = options[:cofType]
@@ -313,6 +313,12 @@ module ActiveMerchant #:nodoc:
           country.code(:alpha3).value
         end
       rescue InvalidCountryCodeError
+      end
+
+      def expiration_date(payment_method)
+        yy = format(payment_method.year, :two_digits)
+        mm = format(payment_method.month, :two_digits)
+        mm + yy
       end
     end
   end
