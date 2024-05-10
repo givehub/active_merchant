@@ -62,7 +62,7 @@ class PayrixTest < Test::Unit::TestCase
     assert capture = @gateway.capture(@amount, auth.authorization)
     assert_success capture
     assert_equal 'Pending', capture.message
-    refute_empty capture.params["response"]["data"].first["batch"]
+    refute_empty capture.params['response']['data'].first['batch']
   end
 
   def test_failed_capture
@@ -101,9 +101,9 @@ class PayrixTest < Test::Unit::TestCase
     assert response.params['response']['data'].first['id'].present?
     assert response.params['response']['data'].first['fortxn'].present?
     assert_equal PayrixGateway::TXNS_RESPONSE_STATUS[:'1'], response.message
-    assert_equal @refund_amount, response.params["response"]["data"].first["approved"]
-    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], response.params["response"]["data"].first["unauthReason"]
-    refute_empty response.params["response"]["data"].first["id"]
+    assert_equal @refund_amount, response.params['response']['data'].first['approved']
+    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], response.params['response']['data'].first['unauthReason']
+    refute_empty response.params['response']['data'].first['id']
   end
 
   def test_failed_refund
@@ -128,8 +128,8 @@ class PayrixTest < Test::Unit::TestCase
     assert response.params['response']['data'].first['id'].present?
     assert response.params['response']['data'].first['fortxn'].present?
     assert_equal PayrixGateway::TXNS_RESPONSE_STATUS[:'1'], response.message
-    assert_equal @amount, response.params["response"]["data"].first["approved"]
-    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], response.params["response"]["data"].first["unauthReason"]
+    assert_equal @amount, response.params['response']['data'].first['approved']
+    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], response.params['response']['data'].first['unauthReason']
   end
 
   def test_failed_void

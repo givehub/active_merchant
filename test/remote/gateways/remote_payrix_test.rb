@@ -45,11 +45,11 @@ class RemotePayrixTest < Test::Unit::TestCase
       company: 'Widgets Inc',
       cofType: 'single',
       fundingCurrency: 'USD',
-      description: "Store Purchase Description",
+      description: 'Store Purchase Description',
       discount: 1,
-      first: "Joe",
-      middle: "M",
-      last: "Smith",
+      first: 'Joe',
+      middle: 'M',
+      last: 'Smith',
       shipping: 1,
       tax: 1,
       surcharge: 1,
@@ -58,7 +58,7 @@ class RemotePayrixTest < Test::Unit::TestCase
 
     response = @gateway.purchase(@amount, @credit_card, options)
     assert_success response
-    assert_equal 1, response.params["response"]["data"].first["fee"]
+    assert_equal 1, response.params['response']['data'].first['fee']
     assert_equal 'Approved', response.message
   end
 
@@ -73,7 +73,7 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert_success response
     assert response.test?
     assert_equal 'Approved', response.message
-    refute_empty response.params["response"]["data"].first["authorization"]
+    refute_empty response.params['response']['data'].first['authorization']
   end
 
   def test_partial_authorized
@@ -82,8 +82,8 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert_success response
     assert response.test?
     assert_equal 'Approved', response.message
-    refute_empty response.params["response"]["data"].first["authorization"]
-    assert_equal "1010", response.params["response"]["data"].first["approved"]
+    refute_empty response.params['response']['data'].first['authorization']
+    assert_equal '1010', response.params['response']['data'].first['approved']
   end
 
   def test_successful_authorize_and_capture
@@ -93,7 +93,7 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert capture = @gateway.capture(@amount, auth.authorization)
     assert_success capture
     assert_equal 'Pending', capture.message
-    refute_empty capture.params["response"]["data"].first["batch"]
+    refute_empty capture.params['response']['data'].first['batch']
   end
 
   def test_failed_authorize
@@ -111,13 +111,13 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert capture = @gateway.capture(@amount - 1, auth.authorization)
     assert_success capture
     assert_equal 'Pending', capture.message
-    refute_empty capture.params["response"]["data"].first["batch"]
+    refute_empty capture.params['response']['data'].first['batch']
   end
 
   def test_failed_capture
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
-    assert void = @gateway.void(auth.authorization)
+    assert @gateway.void(auth.authorization)
 
     failed_capture_response = @gateway.capture(10000, auth.authorization)
     assert_failure failed_capture_response
@@ -143,7 +143,7 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert void = @gateway.void(auth.authorization)
     assert_success void
     assert_equal 'Approved', void.message
-    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], void.params["response"]["data"].first["unauthReason"]
+    assert_equal PayrixGateway::TXNS_UNAUTH_REASONS[:customer_cancelled], void.params['response']['data'].first['unauthReason']
   end
 
   def test_successful_verify

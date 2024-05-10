@@ -4,7 +4,7 @@ module ActiveMerchant #:nodoc:
       self.test_url = 'https://test-api.payrix.com'
       self.live_url = 'https://api.payrix.com'
 
-      self.supported_countries = ['AU', 'GB', 'NZ', 'US']
+      self.supported_countries = %w[AU GB NZ US]
       self.default_currency = 'USD'
       self.supported_cardtypes = %i[visa master american_express discover diners_club]
 
@@ -60,8 +60,6 @@ module ActiveMerchant #:nodoc:
         '4': 'Settled',
         '5': 'Returned'
       }
-
-      TXNS_SUCCESS_STATUSES = ['Pending', 'Approved', 'Captured', 'Settled', 'Returned']
 
       STANDARD_ERROR_CODE = {
         invalid_card_number: 'invalid_card_number',
@@ -134,50 +132,50 @@ module ActiveMerchant #:nodoc:
       private
 
       def build_void_request(authorized_transaction_id, options)
-        post = {}
-        post[:fortxn] = authorized_transaction_id
-        post[:type] = TXNS_TYPE[:cc_only_reverse_auth]
-        post
+        {}.tap do |post|
+          post[:fortxn] = authorized_transaction_id
+          post[:type] = TXNS_TYPE[:cc_only_reverse_auth]
+        end.compact
       end
 
       def build_authorize_request(money, payment, options)
-        post = build_purchase_request(money, payment, options)
-        post[:type] = TXNS_TYPE[:cc_only_auth]
-        post
+        {}.tap do |post|
+          post.merge!(build_purchase_request(money, payment, options))
+          post[:type] = TXNS_TYPE[:cc_only_auth]
+        end.compact
       end
 
       def build_capture_request(money, authorized_transaction_id, options)
-        post = {}
-        post = build_purchase_request(money, nil, options)
-        post[:type] = TXNS_TYPE[:cc_only_capture]
-        post[:fortxn] = authorized_transaction_id
-        post
+        {}.tap do |post|
+          post.merge!(build_purchase_request(money, nil, options))
+          post[:type] = TXNS_TYPE[:cc_only_capture]
+          post[:fortxn] = authorized_transaction_id
+        end.compact
       end
 
       def build_refund_request(money, authorized_transaction_id, options)
-        post = {}
-        post[:fortxn] = authorized_transaction_id
-        post[:total] = money if money
-        post[:type] = TXNS_TYPE[:cc_only_refund]
+        {}.tap do |post|
+          post[:fortxn] = authorized_transaction_id
+          post[:total] = money if money
+          post[:type] = TXNS_TYPE[:cc_only_refund]
 
-        if options[:type] == TXNS_TYPE[:echeck_only_refund]
-          post[:type] = TXNS_TYPE[:echeck_only_refund]
-          post[:first] = options[:first]
-        end
-
-        post
+          if options[:type] == TXNS_TYPE[:echeck_only_refund]
+            post[:type] = TXNS_TYPE[:echeck_only_refund]
+            post[:first] = options[:first]
+          end
+        end.compact
       end
 
       def build_purchase_request(money, payment, options)
-        post = {}
-        add_merchant(post, options)
-        add_payment(post, payment) if payment
-        add_invoice(post, money, options)
-        add_address(post, options)
-        add_adjustments(post, options)
-        add_customer_data(post, options)
-        add_transaction_details(post, options)
-        post
+        {}.tap do |post|
+          add_merchant(post, options)
+          add_payment(post, payment) if payment
+          add_invoice(post, money, options)
+          add_address(post, options)
+          add_adjustments(post, options)
+          add_customer_data(post, options)
+          add_transaction_details(post, options)
+        end.compact
       end
 
       def add_adjustments(post, options)
@@ -240,7 +238,7 @@ module ActiveMerchant #:nodoc:
         JSON.parse(body)
       end
 
-      def commit(action, parameters, options={})
+      def commit(action, parameters, options = {})
         url = (test? ? test_url : live_url)
         endpoint = url + '/' + action
         response = parse(ssl_post(endpoint, parameters.to_json, auth_headers(options)))
@@ -254,7 +252,7 @@ module ActiveMerchant #:nodoc:
           error_code: error_code_from(response)
         )
       rescue ActiveMerchant::ResponseError => e
-        response = e.response.body.present? ? parse(e.response.body) : { "response" => { "data" => [], "errors" => [{ "msg" => e.response.msg }] } }
+        response = e.response.body.present? ? parse(e.response.body) : { 'response' => { 'data' => [], 'errors' => [{ 'msg' => e.response.msg }] } }
         message = e.response.msg
         Response.new(false, message, response, test: test?)
       end
@@ -267,42 +265,36 @@ module ActiveMerchant #:nodoc:
       end
 
       def success_from(response)
-        response["response"]["errors"].empty? ? true : false
+        response['response']['errors'].empty? ? true : false
       end
 
       def message_from(response)
         if success_from(response)
-          response_status_code = response.try(:[], "response").try(:[], "data").first.try(:[], "status")
+          response_status_code = response.try(:[], 'response').try(:[], 'data').first.try(:[], 'status')
           response_status_code.nil? ? 'Request Successful' : TXNS_RESPONSE_STATUS[:"#{response_status_code}"]
         else
-          response.try(:[], "response").try(:[], "errors").first.try(:[], "msg")
+          response.try(:[], 'response').try(:[], 'errors').first.try(:[], 'msg')
         end
       end
 
       def authorization_from(response)
-        response.try(:[], "response").try(:[], "data").first.try(:[], "id")
+        response.try(:[], 'response').try(:[], 'data').first.try(:[], 'id')
       end
 
       def error_code_from(response)
-        unless success_from(response)
-          response.try(:[], "response").try(:[], "errors").first.try(:[], "errorCode")
-        end
+        response.try(:[], 'response').try(:[], 'errors').first.try(:[], 'errorCode') unless success_from(response)
       end
 
       def scrub_email(email)
         return nil unless email.present?
-        return nil if
-          email !~ /^.+@[^\.]+(\.[^\.]+)+[a-z]$/i ||
-            email =~ /\.(con|met)$/i
+        return nil if email !~ /^.+@[^\.]+(\.[^\.]+)+[a-z]$/i || email =~ /\.(con|met)$/i
 
         email
       end
 
       def scrub_zip(zip)
         return nil unless zip.present?
-        return nil if
-          zip.gsub(/[^a-z0-9]/i, '').length > 9 ||
-            zip =~ /[^a-z0-9\- ]/i
+        return nil if zip.gsub(/[^a-z0-9]/i, '').length > 9 || zip =~ /[^a-z0-9\- ]/i
 
         zip
       end
@@ -313,6 +305,7 @@ module ActiveMerchant #:nodoc:
           country.code(:alpha3).value
         end
       rescue InvalidCountryCodeError
+        nil
       end
 
       def expiration_date(payment_method)
