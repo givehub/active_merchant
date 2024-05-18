@@ -10,7 +10,7 @@ class RemotePayrixTest < Test::Unit::TestCase
     @test_credit_card = credit_card('4242424242424242')
 
     @options = {
-      order: generate_unique_id,
+      order_id: generate_unique_id,
       billing_address: address,
       description: 'Active Merchant Remote Test - Store Purchase',
       type: PayrixGateway::TXNS_TYPE[:cc_only_sale],
@@ -31,8 +31,8 @@ class RemotePayrixTest < Test::Unit::TestCase
       type: PayrixGateway::TXNS_TYPE[:cc_only_sale],
       origin: PayrixGateway::TXNS_ORIGIN[:ecommerce_system],
       expiration: '0120',
-      order: generate_unique_id,
-      clientIp: '165.50.159.143',
+      order_id: generate_unique_id,
+      ip: '165.50.159.143',
       email: 'joe@example.com',
       fee: 1,
       address1: '1234 My Street',
@@ -47,9 +47,9 @@ class RemotePayrixTest < Test::Unit::TestCase
       fundingCurrency: 'USD',
       description: 'Store Purchase Description',
       discount: 1,
-      first: 'Joe',
-      middle: 'M',
-      last: 'Smith',
+      first_name: 'Joe',
+      middle_name: 'M',
+      last_name: 'Smith',
       shipping: 1,
       tax: 1,
       surcharge: 1,

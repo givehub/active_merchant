@@ -8,7 +8,7 @@ class PayrixTest < Test::Unit::TestCase
     @refund_amount = 1
 
     @options = {
-      order: 'order1',
+      order_id: 'order1',
       billing_address: address,
       description: 'Store Purchase',
       type: PayrixGateway::TXNS_TYPE[:cc_only_sale],

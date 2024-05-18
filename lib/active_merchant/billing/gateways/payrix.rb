@@ -161,7 +161,7 @@ module ActiveMerchant #:nodoc:
 
           if options[:type] == TXNS_TYPE[:echeck_only_refund]
             post[:type] = TXNS_TYPE[:echeck_only_refund]
-            post[:first] = options[:first]
+            post[:first] = options[:first_name]
           end
         end.compact
       end
@@ -189,11 +189,11 @@ module ActiveMerchant #:nodoc:
 
       def add_customer_data(post, options)
         post[:phone] = truncate(options[:phone], PHONE_MAX_SIZE)
-        post[:clientIp] = options[:clientIp]
+        post[:clientIp] = options[:ip]
         post[:email] = scrub_email(options[:email])
-        post[:first] = options[:first]
-        post[:middle] = options[:middle]
-        post[:last] = options[:last]
+        post[:first] = options[:first_name]
+        post[:middle] = options[:middle_name]
+        post[:last] = options[:last_name]
         post[:company] = options[:company]
       end
 
@@ -222,7 +222,7 @@ module ActiveMerchant #:nodoc:
       def add_invoice(post, money, options)
         post[:total] = money
         post[:currency] = options[:currency] || default_currency
-        post[:order] = truncate(options[:order], ORDER_MAX_SIZE)
+        post[:order] = truncate(options[:order_id], ORDER_MAX_SIZE)
       end
 
       def add_transaction_details(post, options)
