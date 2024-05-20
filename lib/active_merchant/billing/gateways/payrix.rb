@@ -173,7 +173,7 @@ module ActiveMerchant #:nodoc:
           add_invoice(post, money, options)
           add_address(post, options)
           add_adjustments(post, options)
-          add_customer_data(post, options)
+          add_customer_data(post, payment, options)
           add_transaction_details(post, options)
         end.compact
       end
@@ -187,23 +187,33 @@ module ActiveMerchant #:nodoc:
         post[:duty] = options[:duty]
       end
 
-      def add_customer_data(post, options)
-        post[:phone] = truncate(options[:phone], PHONE_MAX_SIZE)
+      def add_customer_data(post, payment, options)
+        name = options[:name] || options.dig(:billing_address, :name)
+        first_name, last_name = address_names(name, payment)
+
+        post[:phone] = truncate(phone_from(options), PHONE_MAX_SIZE)
         post[:clientIp] = options[:ip]
         post[:email] = scrub_email(options[:email])
-        post[:first] = options[:first_name]
+        post[:first] = options[:first_name] || first_name
         post[:middle] = options[:middle_name]
-        post[:last] = options[:last_name]
-        post[:company] = options[:company]
+        post[:last] = options[:last_name] || last_name
+        post[:company] = options[:company] || options.dig(:billing_address, :company)
       end
 
       def add_address(post, options)
-        post[:address1] = truncate(options[:address1], ADDRESS_MAX_SIZE)
-        post[:address2] = truncate(options[:address2], ADDRESS_MAX_SIZE)
-        post[:city] = truncate(options[:city], ADDRESS_MAX_SIZE)
-        post[:state] = truncate(options[:state], STATE_MAX_SIZE)
-        post[:zip] = truncate(scrub_zip(options[:zip]), ZIP_MAX_SIZE)
-        post[:country] = country_code(options[:country])
+        address1 = options[:address1] || options.dig(:billing_address, :address1)
+        address2 = options[:address2] || options.dig(:billing_address, :address2)
+        city = options[:city] || options.dig(:billing_address, :city)
+        state = options[:state] || options.dig(:billing_address, :state)
+        zip = options[:zip] || options.dig(:billing_address, :zip)
+        country = options[:country] || options.dig(:billing_address, :country)
+
+        post[:address1] = truncate(address1, ADDRESS_MAX_SIZE)
+        post[:address2] = truncate(address2, ADDRESS_MAX_SIZE)
+        post[:city] = truncate(city, ADDRESS_MAX_SIZE)
+        post[:state] = truncate(state, STATE_MAX_SIZE)
+        post[:zip] = truncate(scrub_zip(zip), ZIP_MAX_SIZE)
+        post[:country] = country_code(country)
       end
 
       def add_merchant(post, options)
@@ -306,6 +316,22 @@ module ActiveMerchant #:nodoc:
         end
       rescue InvalidCountryCodeError
         nil
+      end
+
+      def phone_from(options)
+        phone_number = options[:phone] || options.dig(:billing_address, :phone) || options.dig(:billing_address, :phone_number)
+        return nil if phone_number.blank?
+        phone_number.to_s.gsub(/\D/, '')
+      end
+
+      def address_names(address_name, payment_method)
+        names = split_names(address_name)
+        return names if names.any?(&:present?)
+
+        [
+          payment_method&.first_name,
+          payment_method&.last_name
+        ]
       end
 
       def expiration_date(payment_method)
