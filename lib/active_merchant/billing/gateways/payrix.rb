@@ -321,6 +321,7 @@ module ActiveMerchant #:nodoc:
       def phone_from(options)
         phone_number = options[:phone] || options.dig(:billing_address, :phone) || options.dig(:billing_address, :phone_number)
         return nil if phone_number.blank?
+
         phone_number.to_s.gsub(/\D/, '')
       end
 
