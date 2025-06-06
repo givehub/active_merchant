@@ -168,6 +168,77 @@ class PayrixTest < Test::Unit::TestCase
     assert_equal 'invalid_card_number', verify_response.error_code
   end
 
+  def test_successful_purchase_with_apple_pay
+    apple_pay_payment = network_tokenization_credit_card(
+      '4242424242424242',
+      payment_cryptogram: 'EHuWW9PiBkWvqE5juRwDzAUFBAk=',
+      eci: '07',
+      transaction_id: '1234567890',
+      source: :apple_pay
+    )
+    apple_pay_payment.metadata = {
+      payment_data: {
+        data: 'encrypted_payment_data',
+        header: {
+          ephemeralPublicKey: 'ephemeral_public_key'
+        }
+      }
+    }
+
+    @gateway.expects(:ssl_post).returns(successful_apple_pay_purchase_response)
+
+    response = @gateway.purchase(@amount, apple_pay_payment, @options)
+    assert_success response
+    assert_equal 't1_txn_66326c57442796049c22978', response.authorization
+    assert response.test?
+  end
+
+  def test_successful_authorize_with_apple_pay
+    apple_pay_payment = network_tokenization_credit_card(
+      '4242424242424242',
+      payment_cryptogram: 'EHuWW9PiBkWvqE5juRwDzAUFBAk=',
+      eci: '07',
+      transaction_id: '1234567890',
+      source: :apple_pay
+    )
+    apple_pay_payment.metadata = {
+      payment_data: {
+        data: 'encrypted_payment_data',
+        header: {
+          ephemeralPublicKey: 'ephemeral_public_key'
+        }
+      }
+    }
+
+    @gateway.expects(:ssl_post).returns(successful_apple_pay_authorize_response)
+
+    response = @gateway.authorize(@amount, apple_pay_payment, @options)
+    assert_success response
+    assert_equal 'Approved', response.message
+    assert response.params['response']['data'].first['authorization'].present?
+  end
+
+  def test_successful_purchase_with_apple_pay_token_in_options
+    apple_pay_options = @options.merge(
+      apple_pay_token: {
+        payment_data: {
+          data: 'encrypted_payment_data',
+          header: {
+            ephemeralPublicKey: 'ephemeral_public_key'
+          },
+          version: 'EC_v1'
+        }
+      }
+    )
+
+    @gateway.expects(:ssl_post).returns(successful_apple_pay_purchase_response)
+
+    response = @gateway.purchase(@amount, nil, apple_pay_options)
+    assert_success response
+    assert_equal 't1_txn_66326c57442796049c22978', response.authorization
+    assert response.test?
+  end
+
   def test_scrub
     assert @gateway.supports_scrubbing?
     assert_equal @gateway.scrub(pre_scrubbed), post_scrubbed
@@ -282,6 +353,18 @@ class PayrixTest < Test::Unit::TestCase
   def failed_void_response
     <<-RESPONSE
       {"response":{"data":[],"details":{"requestId":1},"errors":[{"field":null,"code":15,"severity":2,"msg":"Invalid unauth transaction","errorCode":"invalid_reverse_auth"}]}}
+    RESPONSE
+  end
+
+  def successful_apple_pay_purchase_response
+    <<-RESPONSE
+      {"response":{"data":[{"payment":{"id":"g158fe267496346","method":2,"number":"4242","routing":"0","bin":"424242","payment":null,"lastChecked":null,"last4":null,"mask":null},"id":"t1_txn_66326c57442796049c22978","created":"2024-05-01 14:11:33.6273","modified":"2024-05-01 14:11:35.1438","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"fortxn":null,"fromtxn":null,"batch":"t1_bth_66328504d42e3aa243fc6b2","subscription":null,"type":"1","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"order_id_123","description":"Store Purchase Description","descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":"9","origin":"2","tax":1,"total":100,"cashback":null,"authorization":"46096","approved":"100","cvv":1,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":"165.50.159.143","first":"Joe","middle":"M","last":"Smith","company":"Widgets Inc","email":"joe@example.com","address1":"1234 My Street","address2":"Apt 1","city":"Los Angeles","state":"CA","zip":"90010","country":"USA","phone":"5555555555","status":"1","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":1,"shipping":1,"duty":1,"pin":0,"traceNumber":null,"cvvStatus":null,"unauthReason":null,"fee":1,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":"single","copyReason":null,"originalApproved":"100","currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":1,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":1,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
+    RESPONSE
+  end
+
+  def successful_apple_pay_authorize_response
+    <<-RESPONSE
+      {"response":{"data":[{"payment":{"id":"g158fe267496346","method":2,"number":"4242","routing":"0","bin":"424242","payment":null,"lastChecked":null,"last4":null,"mask":null},"id":"t1_txn_663523873402da4d3cef5bc","created":"2024-05-03 13:48:55.2134","modified":"2024-05-03 13:48:56.4753","creator":"t1_log_660f182a09e2b0349924bd3","modifier":"t1_log_660f182a09e2b0349924bd3","ipCreated":"104.175.241.99","ipModified":"104.175.241.99","merchant":"t1_mer_661041feb6b9c04fb7a9ee5","token":null,"fortxn":null,"fromtxn":null,"batch":null,"subscription":null,"type":"2","expiration":"0120","currency":"USD","platform":"VANTIV","authDate":null,"authCode":null,"captured":null,"settled":null,"settledCurrency":null,"settledTotal":null,"allowPartial":0,"order":"fda2f5647f9fbe5b4af8d3f925518705","description":"Active Merchant Remote Test - Store Purchase","descriptor":"Test Merchant","terminal":null,"terminalCapability":null,"entryMode":"9","origin":"2","tax":null,"total":10000,"cashback":null,"authorization":"92706","approved":"10000","cvv":1,"swiped":0,"emv":0,"signature":0,"unattended":null,"clientIp":null,"first":null,"middle":null,"last":null,"company":null,"email":null,"address1":null,"address2":null,"city":null,"state":null,"zip":null,"country":null,"phone":null,"status":"1","refunded":0,"reserved":0,"misused":null,"imported":0,"inactive":0,"frozen":0,"discount":null,"shipping":null,"duty":null,"pin":0,"traceNumber":null,"cvvStatus":null,"unauthReason":null,"fee":null,"fundingCurrency":"USD","authentication":null,"authenticationId":null,"cofType":null,"copyReason":null,"originalApproved":"10000","currencyConversion":null,"serviceCode":null,"authTokenCustomer":null,"debtRepayment":"0","statement":null,"convenienceFee":0,"surcharge":null,"channel":null,"funded":null,"fundingEnabled":"1","requestSequence":0,"processedSequence":0,"mobile":null,"pinEntryCapability":null,"returned":null,"txnsession":null}],"details":{"requestId":1},"errors":[]}}
     RESPONSE
   end
 end

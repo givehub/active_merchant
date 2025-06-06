@@ -159,6 +159,21 @@ class RemotePayrixTest < Test::Unit::TestCase
     assert_match 'invalid_card_number', response.error_code
   end
 
+  def test_successful_purchase_with_apple_pay
+    apple_pay_payment = network_tokenization_credit_card(
+      '4242424242424242',
+      payment_cryptogram: 'EHuWW9PiBkWvqE5juRwDzAUFBAk=',
+      eci: '07',
+      transaction_id: '1234567890',
+      source: :apple_pay
+    )
+
+    response = @gateway.purchase(@amount, apple_pay_payment, @options)
+    assert_success response
+    assert response.test?
+    assert_equal 'Approved', response.message
+  end
+
   def test_invalid_login
     gateway = PayrixGateway.new(merchant_id: 'invalid', api_key: 'invalid')
 
