@@ -34,6 +34,16 @@ module ActiveMerchant #:nodoc:
         partial_amount_authorizations_allowed: '1'
       }
 
+      TXNS_ENTRY_MODE = {
+        manual: '1',
+        magnetic_stripe: '2',
+        chip: '3',
+        contactless: '4',
+        credential_on_file: '5',
+        ecommerce: '7',
+        apple_pay: '9'
+      }
+
       CREDIT_CARD_CODES = {
         american_express: '1',
         visa: '2',
@@ -169,7 +179,14 @@ module ActiveMerchant #:nodoc:
       def build_purchase_request(money, payment, options)
         {}.tap do |post|
           add_merchant(post, options)
-          add_payment(post, payment) if payment
+
+          # Handle Apple Pay token passed via options
+          if options[:apple_pay_token]
+            add_apple_pay_from_options(post, options[:apple_pay_token], options)
+          elsif payment
+            add_payment(post, payment)
+          end
+
           add_invoice(post, money, options)
           add_address(post, options)
           add_adjustments(post, options)
@@ -221,12 +238,57 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_payment(post, payment)
+        if payment.is_a?(NetworkTokenizationCreditCard) && payment.source == :apple_pay
+          add_apple_pay(post, payment)
+        else
+          post[:payment] = {
+            method: CREDIT_CARD_CODES[:"#{payment.brand}"],
+            number: payment.number,
+            cvv: payment.verification_value
+          }
+          post[:expiration] = expiration_date(payment)
+        end
+      end
+
+      def add_apple_pay(post, payment)
+        post[:entryMode] = TXNS_ENTRY_MODE[:apple_pay]
+
+        # Handle Apple Pay token structure
+        # For NetworkTokenizationCreditCard, we need to construct the payment data
+        # from the available attributes
         post[:payment] = {
-          method: CREDIT_CARD_CODES[:"#{payment.brand}"],
-          number: payment.number,
-          cvv: payment.verification_value
+          paymentData: {
+            data: payment.payment_cryptogram,
+            header: {
+              ephemeralPublicKey: payment.eci
+            }
+          },
+          version: payment.transaction_id || 'EC_v1',
+          encrypted: 'applePaymentToken'
         }
-        post[:expiration] = expiration_date(payment)
+
+        # Use metadata if available for additional payment data
+        post[:payment][:paymentData] = payment.metadata[:payment_data] if payment.metadata.is_a?(Hash) && payment.metadata[:payment_data]
+
+        # Apple Pay tokens don't have traditional expiration dates
+        # but we still need to set something for the API
+        post[:expiration] = expiration_date(payment) if payment.month && payment.year
+      end
+
+      def add_apple_pay_from_options(post, apple_pay_token, options)
+        post[:entryMode] = TXNS_ENTRY_MODE[:apple_pay]
+        post[:payment] = {
+          paymentData: {
+            data: apple_pay_token[:payment_data][:data],
+            header: {
+              ephemeralPublicKey: apple_pay_token[:payment_data][:header][:ephemeralPublicKey]
+            }
+          },
+          version: apple_pay_token[:payment_data][:version],
+          encrypted: 'applePaymentToken'
+        }
+        # Set expiration if provided
+        post[:expiration] = options[:expiration] if options[:expiration]
       end
 
       def add_invoice(post, money, options)
@@ -242,6 +304,8 @@ module ActiveMerchant #:nodoc:
         post[:fundingCurrency] = options[:fundingCurrency]
         post[:cofType] = options[:cofType]
         post[:allowPartial] = options[:allowPartial] || TXNS_ALLOW_PARTIAL[:partial_amount_authorizations_not_allowed]
+        # Don't override entryMode if it was already set (e.g., for Apple Pay)
+        post[:entryMode] ||= options[:entry_mode] if options[:entry_mode]
       end
 
       def parse(body)
